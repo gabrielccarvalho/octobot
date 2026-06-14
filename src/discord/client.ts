@@ -48,11 +48,16 @@ export async function startDiscord(
     } catch (err) {
       console.error("Command handler error:", err);
       try {
-        const body = { content: "Something went wrong.", flags: MessageFlags.Ephemeral };
         if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(body);
+          await interaction.followUp({
+            content: "Something went wrong.",
+            flags: MessageFlags.Ephemeral,
+          });
         } else {
-          await interaction.reply(body);
+          await interaction.reply({
+            content: "Something went wrong.",
+            flags: MessageFlags.Ephemeral,
+          });
         }
       } catch (replyErr) {
         console.error("Failed to send error reply:", replyErr);
