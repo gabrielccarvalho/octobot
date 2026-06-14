@@ -11,7 +11,7 @@ async function main() {
   const db = createDatabase(config.databasePath);
 
   await registerCommands(config.discordToken, config.discordClientId);
-  const { sender } = await startDiscord(config.discordToken, db);
+  const { client, sender } = await startDiscord(config.discordToken, db);
 
   const notify = createNotifier(db, sender);
 
@@ -25,10 +25,19 @@ async function main() {
 
   await app.listen({ host: "0.0.0.0", port: config.port });
 
+  let closing = false;
   const shutdown = async () => {
-    await app.close();
-    db.close();
-    process.exit(0);
+    if (closing) return;
+    closing = true;
+    try {
+      await app.close();
+      await client.destroy();
+      db.close();
+    } catch (err) {
+      console.error("Error during shutdown:", err);
+    } finally {
+      process.exit(0);
+    }
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
