@@ -24,6 +24,10 @@ describe("loadConfig", () => {
     expect(loadConfig(base).allowedOwners).toBeNull();
   });
 
+  it("treats an empty/comma-only ALLOWED_OWNERS as null, not an empty list", () => {
+    expect(loadConfig({ ...base, ALLOWED_OWNERS: " , , " }).allowedOwners).toBeNull();
+  });
+
   it("throws listing every missing required var", () => {
     expect(() => loadConfig({})).toThrowError(
       /DISCORD_TOKEN.*DISCORD_CLIENT_ID.*GITHUB_WEBHOOK_SECRET.*DATABASE_PATH.*PORT/s

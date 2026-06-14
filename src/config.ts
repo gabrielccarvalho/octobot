@@ -26,10 +26,11 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new Error(`PORT must be a positive integer, got: ${env.PORT}`);
   }
 
-  const ownersRaw = env.ALLOWED_OWNERS?.trim();
-  const allowedOwners = ownersRaw
-    ? ownersRaw.split(",").map((s) => s.trim()).filter(Boolean)
-    : null;
+  const owners = (env.ALLOWED_OWNERS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const allowedOwners = owners.length > 0 ? owners : null;
 
   return {
     discordToken: env.DISCORD_TOKEN!.trim(),
