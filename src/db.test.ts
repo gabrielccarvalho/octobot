@@ -1,9 +1,12 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createDatabase, type Database } from "./db";
 
 let db: Database;
 beforeEach(() => {
   db = createDatabase(":memory:");
+});
+afterEach(() => {
+  db.close();
 });
 
 describe("links", () => {

@@ -62,22 +62,23 @@ export function createDatabase(path: string): Database {
 
   return {
     upsertLink(discordId, githubLogin, guildId): UpsertResult {
-      const owner = sql
-        .prepare("SELECT discord_id FROM links WHERE github_login = ?")
-        .get(githubLogin) as { discord_id: string } | undefined;
-      if (owner && owner.discord_id !== discordId) {
-        return { ok: false, reason: "github_login_taken" };
-      }
-      const tx = sql.transaction(() => {
+      let result: UpsertResult = { ok: true };
+      sql.transaction(() => {
+        const owner = sql
+          .prepare("SELECT discord_id FROM links WHERE github_login = ?")
+          .get(githubLogin) as { discord_id: string } | undefined;
+        if (owner && owner.discord_id !== discordId) {
+          result = { ok: false, reason: "github_login_taken" };
+          return;
+        }
         sql.prepare("DELETE FROM links WHERE discord_id = ?").run(discordId);
         sql
           .prepare(
             "INSERT INTO links (discord_id, github_login, guild_id, created_at) VALUES (?, ?, ?, ?)"
           )
           .run(discordId, githubLogin, guildId, new Date().toISOString());
-      });
-      tx();
-      return { ok: true };
+      })();
+      return result;
     },
 
     removeLink(discordId): boolean {
@@ -90,7 +91,9 @@ export function createDatabase(path: string): Database {
     getLinkByDiscordId(discordId): Link | null {
       return toLink(
         sql
-          .prepare("SELECT * FROM links WHERE discord_id = ?")
+          .prepare(
+            "SELECT discord_id, github_login, guild_id, created_at FROM links WHERE discord_id = ?"
+          )
           .get(discordId) as LinkRow | undefined
       );
     },
