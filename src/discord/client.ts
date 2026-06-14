@@ -47,11 +47,15 @@ export async function startDiscord(
       else if (interaction.commandName === "status") await handleStatus(ctx, db);
     } catch (err) {
       console.error("Command handler error:", err);
-      if (!interaction.replied) {
-        await interaction.reply({
-          content: "Something went wrong.",
-          flags: MessageFlags.Ephemeral,
-        });
+      try {
+        const body = { content: "Something went wrong.", flags: MessageFlags.Ephemeral };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(body);
+        } else {
+          await interaction.reply(body);
+        }
+      } catch (replyErr) {
+        console.error("Failed to send error reply:", replyErr);
       }
     }
   });
