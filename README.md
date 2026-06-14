@@ -35,6 +35,10 @@ In Discord:
 - `/unlink` — stop
 - `/status` — see what you're linked to
 
+> Note: global slash commands are registered on startup but can take up to ~1
+> hour to appear in Discord the first time. If `/link` isn't visible right after
+> your first deploy, give it some time.
+
 ## Development
 
 ```bash
