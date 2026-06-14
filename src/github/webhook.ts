@@ -2,6 +2,13 @@ import { createHmac, timingSafeEqual } from "crypto";
 import type { FastifyInstance } from "fastify";
 import { parseEvent, type NotificationEvent, type PullRequestPayload } from "./events";
 
+declare module "fastify" {
+  interface FastifyRequest {
+    // The exact bytes GitHub signed, stashed before JSON parsing for HMAC verification.
+    rawBody: Buffer;
+  }
+}
+
 export function verifySignature(
   secret: string,
   payload: Buffer | string,
@@ -31,7 +38,7 @@ export function registerWebhookRoute(
     "application/json",
     { parseAs: "buffer" },
     (req, body, done) => {
-      (req as unknown as { rawBody: Buffer }).rawBody = body as Buffer;
+      req.rawBody = body as Buffer;
       try {
         done(null, JSON.parse((body as Buffer).toString("utf8")));
       } catch (err) {
@@ -41,7 +48,7 @@ export function registerWebhookRoute(
   );
 
   app.post("/webhook/github", async (req, reply) => {
-    const raw = (req as unknown as { rawBody: Buffer }).rawBody;
+    const raw = req.rawBody;
     const signature = req.headers["x-hub-signature-256"] as string | undefined;
     if (!verifySignature(opts.secret, raw, signature)) {
       return reply.code(401).send({ error: "invalid signature" });
