@@ -23,13 +23,16 @@ function ctx(userId = "user1"): CommandContext {
   return { userId, guildId: "g1", getOption: () => null, reply: async (m) => { replies.push(m); } };
 }
 
-function pr(n: number, title = "Title"): PrSummary {
+const UPDATED_AT = "2026-06-17T10:00:00Z";
+const UNIX = Math.floor(Date.parse(UPDATED_AT) / 1000);
+
+function pr(n: number, title = "Title", repo = "acme/repo"): PrSummary {
   return {
-    repoFullName: "acme/repo",
+    repoFullName: repo,
     number: n,
     title,
-    url: `https://github.com/acme/repo/pull/${n}`,
-    updatedAt: "2026-06-17T10:00:00Z",
+    url: `https://github.com/${repo}/pull/${n}`,
+    updatedAt: UPDATED_AT,
   };
 }
 
@@ -72,19 +75,39 @@ describe("/status", () => {
     expect(listAttention).not.toHaveBeenCalled();
   });
 
-  it("shows the login and both sections with items", async () => {
+  it("groups PRs by repo with per-PR lines and a relative timestamp", async () => {
     db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
     await handleStatus(
       ctx(),
       db,
-      statusDeps({ incoming: [pr(7, "Fix bug")], mine: [pr(9, "My feature")] })
+      statusDeps({
+        incoming: [
+          pr(128, "Add rate limiting", "acme/api"),
+          pr(130, "Fix pagination", "acme/api"),
+          pr(54, "Fix nav overflow", "acme/web"),
+        ],
+        mine: [],
+      })
     );
     const msg = replies[0];
     expect(msg).toContain("octocat");
-    expect(msg).toContain("Awaiting your review");
-    expect(msg).toContain("[acme/repo #7 Fix bug](https://github.com/acme/repo/pull/7)");
-    expect(msg).toContain("Your PRs awaiting review");
-    expect(msg).toContain("[acme/repo #9 My feature](https://github.com/acme/repo/pull/9)");
+    expect(msg).toContain("**acme/api**");
+    expect(msg).toContain("**acme/web**");
+    expect(msg).toContain(
+      `#128 [Add rate limiting](https://github.com/acme/api/pull/128) · <t:${UNIX}:R>`
+    );
+    expect(msg).toContain(
+      `#54 [Fix nav overflow](https://github.com/acme/web/pull/54) · <t:${UNIX}:R>`
+    );
+    expect(msg.match(/\*\*acme\/api\*\*/g)).toHaveLength(1);
+  });
+
+  it("truncates a long title to 59 characters", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    const longTitle = "x".repeat(80);
+    await handleStatus(ctx(), db, statusDeps({ incoming: [pr(1, longTitle)], mine: [] }));
+    expect(replies[0]).toContain(`[${"x".repeat(58)}…]`);
+    expect(replies[0]).not.toContain("x".repeat(60));
   });
 
   it("shows friendly empty-state lines when sections are empty", async () => {
@@ -94,21 +117,20 @@ describe("/status", () => {
     expect(replies[0]).toMatch(/No open PRs of yours/i);
   });
 
-  it("caps a section at 10 and notes the remainder", async () => {
+  it("caps a section at 10 PRs before grouping and notes the remainder", async () => {
     db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
     const many = Array.from({ length: 13 }, (_, i) => pr(i + 1));
     await handleStatus(ctx(), db, statusDeps({ incoming: many, mine: [] }));
-    const itemLines = replies[0].split("\n").filter((l) => l.startsWith("• "));
-    expect(itemLines).toHaveLength(10);
+    const prLines = replies[0].split("\n").filter((l) => /^#\d+ /.test(l));
+    expect(prLines).toHaveLength(10);
     expect(replies[0]).toContain("…and 3 more");
   });
 
-  it("clamps the reply to Discord's 2000-character limit", async () => {
+  it("keeps the reply within Discord's 2000-char limit", async () => {
     db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    const longTitle = "x".repeat(70);
-    const incoming = Array.from({ length: 10 }, (_, i) => pr(i + 1, longTitle));
-    const mine = Array.from({ length: 10 }, (_, i) => pr(i + 100, longTitle));
-    await handleStatus(ctx(), db, statusDeps({ incoming, mine }));
+    const full = (repo: string) =>
+      Array.from({ length: 10 }, (_, i) => pr(i + 1, "y".repeat(59), repo));
+    await handleStatus(ctx(), db, statusDeps({ incoming: full("acme/api"), mine: full("acme/web") }));
     expect(replies[0].length).toBeLessThanOrEqual(2000);
   });
 
