@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createDatabase, type Database } from "./db";
 import { createNotifier, formatMessage, type DmSender } from "./notifier";
 import type { NotificationEvent } from "./github/events";
+import { formatNotification } from "./notifier";
+import type { NotificationItem } from "./github/notifications";
 
 const event: NotificationEvent = {
   prNodeId: "PR_1",
@@ -68,5 +70,28 @@ describe("notifier", () => {
     const notify = createNotifier(db, failing);
     await notify(event, "delivery-1"); // should not throw
     expect(db.wasSent("delivery-1", "rev1")).toBe(false);
+  });
+});
+
+const item: NotificationItem = {
+  threadId: "t1",
+  reason: "review_requested",
+  updatedAt: "2026-06-17T10:00:00Z",
+  repoFullName: "acme/repo",
+  prTitle: "Fix the widget",
+  prUrl: "https://github.com/acme/repo/pull/42",
+};
+
+describe("formatNotification", () => {
+  it("renders a review_requested notification", () => {
+    const msg = formatNotification(item);
+    expect(msg).toContain("Review requested");
+    expect(msg).toContain("acme/repo");
+    expect(msg).toContain("Fix the widget");
+    expect(msg).toContain("https://github.com/acme/repo/pull/42");
+  });
+
+  it("falls back to a generic prefix for unknown reasons", () => {
+    expect(formatNotification({ ...item, reason: "subscribed" })).toContain("New activity");
   });
 });
