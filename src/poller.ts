@@ -10,6 +10,7 @@ export interface PollerDeps {
 }
 
 export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
+  if (!user.lastModified) return; // not yet baselined by onboarding; skip to avoid a flood
   let token: string;
   try {
     token = deps.decryptToken(user);

@@ -29,6 +29,7 @@ function deps(): PollerDeps {
 beforeEach(() => {
   db = createDatabase(":memory:");
   db.upsertUser("d1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+  db.updateLastModified("d1", "Mon");
   sent = [];
   sender = { sendDm: async (discordId, message) => { sent.push({ discordId, message }); } };
 });
@@ -75,4 +76,19 @@ it("does not mark notified when the DM fails", async () => {
   const failing: PollerDeps = { ...deps(), sender: { sendDm: vi.fn(async () => { throw new Error("closed"); }) } };
   await pollUser(failing, user());
   expect(db.wasNotified("d1", "t1", prItem.updatedAt)).toBe(false);
+});
+
+it("skips a user that has no baseline (null lastModified)", async () => {
+  const fresh = createDatabase(":memory:");
+  fresh.upsertUser("d2", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+  const fetchNotifications = vi.fn(); // intentionally never called; guard returns first
+  const localDeps: PollerDeps = {
+    db: fresh,
+    sender,
+    decryptToken: () => "tok",
+    fetchNotifications,
+  };
+  await pollUser(localDeps, fresh.getUser("d2")!);
+  expect(fetchNotifications).not.toHaveBeenCalled();
+  expect(sent).toHaveLength(0);
 });

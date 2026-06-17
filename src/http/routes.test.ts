@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import Fastify from "fastify";
 import { createDatabase, type Database } from "../db";
 import { encrypt, decrypt } from "../crypto";
@@ -7,7 +7,7 @@ import { registerHttpRoutes } from "./routes";
 const KEY = "a".repeat(64);
 let db: Database;
 
-async function buildApp(over: Partial<{ exchangeCode: (c: string) => Promise<string>; fetchViewerLogin: (t: string) => Promise<string> }> = {}) {
+async function buildApp(over: Partial<{ exchangeCode: (c: string) => Promise<string>; fetchViewerLogin: (t: string) => Promise<string>; onConnect: (discordId: string, token: string, githubLogin: string) => Promise<void> }> = {}) {
   const app = Fastify();
   registerHttpRoutes(app, {
     db,
@@ -15,6 +15,7 @@ async function buildApp(over: Partial<{ exchangeCode: (c: string) => Promise<str
     exchangeCode: over.exchangeCode ?? (async () => "gho_token"),
     fetchViewerLogin: over.fetchViewerLogin ?? (async () => "octocat"),
     stateTtlMs: 60_000,
+    onConnect: over.onConnect ?? vi.fn(async () => {}),
   });
   await app.ready();
   return app;
@@ -57,5 +58,24 @@ describe("GET /oauth/callback", () => {
     const res = await app.inject({ method: "GET", url: "/oauth/callback?code=abc&state=s2" });
     expect(res.statusCode).toBe(502);
     expect(db.getUser("discord-2")).toBeNull();
+  });
+
+  it("calls onConnect with the discord id, token, and login on success", async () => {
+    db.createState("s9", "discord-9");
+    const onConnect = vi.fn(async () => {});
+    const app = await buildApp({ onConnect });
+    const res = await app.inject({ method: "GET", url: "/oauth/callback?code=abc&state=s9" });
+    expect(res.statusCode).toBe(200);
+    expect(onConnect).toHaveBeenCalledWith("discord-9", "gho_token", "octocat");
+  });
+
+  it("still returns the success page and stores the user when onConnect throws", async () => {
+    db.createState("s10", "discord-10");
+    const onConnect = vi.fn(async () => { throw new Error("summary failed"); });
+    const app = await buildApp({ onConnect });
+    const res = await app.inject({ method: "GET", url: "/oauth/callback?code=abc&state=s10" });
+    expect(res.statusCode).toBe(200);
+    expect(onConnect).toHaveBeenCalledTimes(1);
+    expect(db.getUser("discord-10")?.githubLogin).toBe("octocat");
   });
 });
