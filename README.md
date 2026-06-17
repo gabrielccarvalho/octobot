@@ -46,5 +46,5 @@ In Discord:
 ```bash
 npm install
 npm test          # run the test suite
-npm run dev       # run locally (use a tunnel like cloudflared to receive webhooks)
+npm run dev       # run locally (use a tunnel like cloudflared so GitHub's OAuth callback can reach you)
 ```
