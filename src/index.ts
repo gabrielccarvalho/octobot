@@ -7,6 +7,11 @@ import { registerCommands } from "./discord/commands";
 import { startDiscord } from "./discord/client";
 import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin } from "./github/oauth";
 import { fetchNotifications } from "./github/notifications";
+import {
+  searchPullRequests,
+  QUERY_AWAITING_MY_REVIEW,
+  QUERY_MY_PRS_AWAITING_REVIEW,
+} from "./github/search";
 import { registerHttpRoutes } from "./http/routes";
 import { startPoller } from "./poller";
 
@@ -27,7 +32,21 @@ async function main() {
   };
 
   await registerCommands(config.discordToken, config.discordClientId);
-  const { client, sender } = await startDiscord(config.discordToken, db, linkDeps);
+  const statusDeps = {
+    listAttention: async (user: import("./db").User) => {
+      const token = decrypt(
+        { ciphertext: user.tokenCiphertext, iv: user.tokenIv, tag: user.tokenTag },
+        config.tokenEncryptionKey
+      );
+      const [incoming, mine] = await Promise.all([
+        searchPullRequests(token, QUERY_AWAITING_MY_REVIEW),
+        searchPullRequests(token, QUERY_MY_PRS_AWAITING_REVIEW),
+      ]);
+      return { incoming, mine };
+    },
+  };
+
+  const { client, sender } = await startDiscord(config.discordToken, db, linkDeps, statusDeps);
 
   const app = Fastify({ logger: true });
   registerHttpRoutes(app, {
