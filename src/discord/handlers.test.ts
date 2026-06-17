@@ -7,8 +7,8 @@ import {
   type CommandContext,
   type LinkDeps,
   type StatusDeps,
-  type AttentionList,
 } from "./handlers";
+import type { AttentionList } from "../status";
 import type { PrSummary } from "../github/search";
 
 let db: Database;
@@ -24,7 +24,6 @@ function ctx(userId = "user1"): CommandContext {
 }
 
 const UPDATED_AT = "2026-06-17T10:00:00Z";
-const UNIX = Math.floor(Date.parse(UPDATED_AT) / 1000);
 
 function pr(n: number, title = "Title", repo = "acme/repo"): PrSummary {
   return {
@@ -75,63 +74,12 @@ describe("/status", () => {
     expect(listAttention).not.toHaveBeenCalled();
   });
 
-  it("groups PRs by repo with per-PR lines and a relative timestamp", async () => {
+  it("renders the connected summary via the shared formatter", async () => {
     db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    await handleStatus(
-      ctx(),
-      db,
-      statusDeps({
-        incoming: [
-          pr(128, "Add rate limiting", "acme/api"),
-          pr(130, "Fix pagination", "acme/api"),
-          pr(54, "Fix nav overflow", "acme/web"),
-        ],
-        mine: [],
-      })
-    );
-    const msg = replies[0];
-    expect(msg).toContain("octocat");
-    expect(msg).toContain("**acme/api**");
-    expect(msg).toContain("**acme/web**");
-    expect(msg).toContain(
-      `#128 [Add rate limiting](https://github.com/acme/api/pull/128) · <t:${UNIX}:R>`
-    );
-    expect(msg).toContain(
-      `#54 [Fix nav overflow](https://github.com/acme/web/pull/54) · <t:${UNIX}:R>`
-    );
-    expect(msg.match(/\*\*acme\/api\*\*/g)).toHaveLength(1);
-  });
-
-  it("truncates a long title to 59 characters", async () => {
-    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    const longTitle = "x".repeat(80);
-    await handleStatus(ctx(), db, statusDeps({ incoming: [pr(1, longTitle)], mine: [] }));
-    expect(replies[0]).toContain(`[${"x".repeat(58)}…]`);
-    expect(replies[0]).not.toContain("x".repeat(60));
-  });
-
-  it("shows friendly empty-state lines when sections are empty", async () => {
-    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    await handleStatus(ctx(), db, statusDeps({ incoming: [], mine: [] }));
-    expect(replies[0]).toMatch(/Nothing awaiting your review/i);
-    expect(replies[0]).toMatch(/No open PRs of yours/i);
-  });
-
-  it("caps a section at 10 PRs before grouping and notes the remainder", async () => {
-    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    const many = Array.from({ length: 13 }, (_, i) => pr(i + 1));
-    await handleStatus(ctx(), db, statusDeps({ incoming: many, mine: [] }));
-    const prLines = replies[0].split("\n").filter((l) => /^#\d+ /.test(l));
-    expect(prLines).toHaveLength(10);
-    expect(replies[0]).toContain("…and 3 more");
-  });
-
-  it("keeps the reply within Discord's 2000-char limit", async () => {
-    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    const full = (repo: string) =>
-      Array.from({ length: 10 }, (_, i) => pr(i + 1, "y".repeat(59), repo));
-    await handleStatus(ctx(), db, statusDeps({ incoming: full("acme/api"), mine: full("acme/web") }));
-    expect(replies[0].length).toBeLessThanOrEqual(2000);
+    await handleStatus(ctx(), db, statusDeps({ incoming: [pr(7, "Fix bug")], mine: [] }));
+    expect(replies[0]).toContain("✅ Connected as `octocat`");
+    expect(replies[0]).toContain("**acme/repo**");
+    expect(replies[0]).toContain("#7 [Fix bug](https://github.com/acme/repo/pull/7)");
   });
 
   it("asks to reconnect on a 401 error", async () => {
