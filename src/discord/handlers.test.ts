@@ -103,6 +103,15 @@ describe("/status", () => {
     expect(replies[0]).toContain("…and 3 more");
   });
 
+  it("clamps the reply to Discord's 2000-character limit", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    const longTitle = "x".repeat(70);
+    const incoming = Array.from({ length: 10 }, (_, i) => pr(i + 1, longTitle));
+    const mine = Array.from({ length: 10 }, (_, i) => pr(i + 100, longTitle));
+    await handleStatus(ctx(), db, statusDeps({ incoming, mine }));
+    expect(replies[0].length).toBeLessThanOrEqual(2000);
+  });
+
   it("asks to reconnect on a 401 error", async () => {
     db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
     const deps: StatusDeps = {

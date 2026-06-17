@@ -39,9 +39,15 @@ export async function handleUnlink(ctx: CommandContext, db: Database): Promise<v
 
 const MAX_PER_SECTION = 10;
 const MAX_TITLE = 70;
+// Discord rejects message content longer than 2000 characters (error 50035).
+const MAX_MESSAGE = 2000;
 
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function clampMessage(message: string): string {
+  return message.length > MAX_MESSAGE ? `${message.slice(0, MAX_MESSAGE - 1)}…` : message;
 }
 
 function renderSection(label: string, prs: PrSummary[], emptyLine: string): string {
@@ -90,5 +96,5 @@ export async function handleStatus(
     list.mine,
     "No open PRs of yours are waiting on a review."
   );
-  await ctx.reply(`${header}\n\n${incoming}\n\n${mine}`);
+  await ctx.reply(clampMessage(`${header}\n\n${incoming}\n\n${mine}`));
 }
