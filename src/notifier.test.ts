@@ -28,7 +28,9 @@ describe("formatMessage", () => {
   it("includes author, repo, number, title and url", () => {
     const msg = formatMessage(event);
     expect(msg).toContain("author1");
-    expect(msg).toContain("acme/repo#7");
+    expect(msg).toContain("requested your review on");
+    expect(msg).toContain("acme/repo");
+    expect(msg).toContain("#7");
     expect(msg).toContain("Fix bug");
     expect(msg).toContain("https://github.com/acme/repo/pull/7");
   });

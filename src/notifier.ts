@@ -7,8 +7,8 @@ export interface DmSender {
 
 export function formatMessage(event: NotificationEvent): string {
   return [
-    `🔔 **${event.author}** requested your review`,
-    `**${event.repoFullName}#${event.prNumber}** — ${event.prTitle}`,
+    `🔔 **${event.author}** requested your review on **${event.repoFullName}**`,
+    `#${event.prNumber} — ${event.prTitle}`,
     event.prUrl,
   ].join("\n");
 }
