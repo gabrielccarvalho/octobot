@@ -38,8 +38,7 @@ export async function handleUnlink(ctx: CommandContext, db: Database): Promise<v
 }
 
 const MAX_PER_SECTION = 10;
-const MAX_TITLE = 70;
-// Discord rejects message content longer than 2000 characters (error 50035).
+const MAX_TITLE = 59;
 const MAX_MESSAGE = 2000;
 
 function truncate(text: string, max: number): string {
@@ -50,14 +49,39 @@ function clampMessage(message: string): string {
   return message.length > MAX_MESSAGE ? `${message.slice(0, MAX_MESSAGE - 1)}…` : message;
 }
 
+// Discord renders <t:UNIX:R> as a localized, auto-updating "5 minutes ago".
+function relativeTime(iso: string): string {
+  return `<t:${Math.floor(new Date(iso).getTime() / 1000)}:R>`;
+}
+
+// Group PRs by repo, preserving first-seen order of both repos and PRs.
+function groupByRepo(prs: PrSummary[]): { repo: string; prs: PrSummary[] }[] {
+  const groups: { repo: string; prs: PrSummary[] }[] = [];
+  const index = new Map<string, PrSummary[]>();
+  for (const pr of prs) {
+    let bucket = index.get(pr.repoFullName);
+    if (!bucket) {
+      bucket = [];
+      index.set(pr.repoFullName, bucket);
+      groups.push({ repo: pr.repoFullName, prs: bucket });
+    }
+    bucket.push(pr);
+  }
+  return groups;
+}
+
 function renderSection(label: string, prs: PrSummary[], emptyLine: string): string {
   if (prs.length === 0) return `${label}\n${emptyLine}`;
-  const lines = prs
-    .slice(0, MAX_PER_SECTION)
-    .map((p) => `• [${p.repoFullName} #${p.number} ${truncate(p.title, MAX_TITLE)}](${p.url})`)
-    .join("\n");
+  const blocks = groupByRepo(prs.slice(0, MAX_PER_SECTION)).map((group) => {
+    const lines = group.prs
+      .map(
+        (p) => `#${p.number} [${truncate(p.title, MAX_TITLE)}](${p.url}) · ${relativeTime(p.updatedAt)}`
+      )
+      .join("\n");
+    return `**${group.repo}**\n${lines}`;
+  });
   const more = prs.length > MAX_PER_SECTION ? `\n…and ${prs.length - MAX_PER_SECTION} more` : "";
-  return `${label} (${prs.length})\n${lines}${more}`;
+  return `${label} (${prs.length})\n${blocks.join("\n")}${more}`;
 }
 
 export async function handleStatus(
