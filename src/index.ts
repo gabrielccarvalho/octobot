@@ -1,35 +1,66 @@
+import { randomBytes } from "crypto";
 import Fastify from "fastify";
 import { loadConfig } from "./config";
 import { createDatabase } from "./db";
+import { encrypt, decrypt } from "./crypto";
 import { registerCommands } from "./discord/commands";
 import { startDiscord } from "./discord/client";
-import { registerWebhookRoute } from "./github/webhook";
-import { createNotifier } from "./notifier";
+import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin } from "./github/oauth";
+import { fetchNotifications } from "./github/notifications";
+import { registerHttpRoutes } from "./http/routes";
+import { startPoller } from "./poller";
+
+const STATE_TTL_MS = 10 * 60 * 1000;
 
 async function main() {
   const config = loadConfig(process.env);
   const db = createDatabase(config.databasePath);
 
-  await registerCommands(config.discordToken, config.discordClientId);
-  const { client, sender } = await startDiscord(config.discordToken, db);
+  const linkDeps = {
+    generateState: () => randomBytes(16).toString("hex"),
+    authorizeUrl: (state: string) =>
+      buildAuthorizeUrl({
+        clientId: config.githubOAuthClientId,
+        redirectUri: `${config.publicBaseUrl}/oauth/callback`,
+        state,
+      }),
+  };
 
-  const notify = createNotifier(db, sender);
+  await registerCommands(config.discordToken, config.discordClientId);
+  const { client, sender } = await startDiscord(config.discordToken, db, linkDeps);
 
   const app = Fastify({ logger: true });
-  app.get("/health", async () => ({ ok: true }));
-  registerWebhookRoute(app, {
-    secret: config.githubWebhookSecret,
-    allowedOwners: config.allowedOwners,
-    onEvent: notify,
+  registerHttpRoutes(app, {
+    db,
+    encrypt: (token) => encrypt(token, config.tokenEncryptionKey),
+    exchangeCode: (code) =>
+      exchangeCode({
+        clientId: config.githubOAuthClientId,
+        clientSecret: config.githubOAuthClientSecret,
+        code,
+      }),
+    fetchViewerLogin: (token) => fetchViewerLogin(token),
+    stateTtlMs: STATE_TTL_MS,
   });
-
   await app.listen({ host: "0.0.0.0", port: config.port });
+
+  const poller = startPoller({
+    db,
+    sender,
+    decryptToken: (user) =>
+      decrypt(
+        { ciphertext: user.tokenCiphertext, iv: user.tokenIv, tag: user.tokenTag },
+        config.tokenEncryptionKey
+      ),
+    fetchNotifications: (token, lastModified) => fetchNotifications(token, lastModified),
+  });
 
   let closing = false;
   const shutdown = async () => {
     if (closing) return;
     closing = true;
     try {
+      poller.stop();
       await app.close();
       await client.destroy();
       db.close();

@@ -1,18 +1,23 @@
 export interface Config {
   discordToken: string;
   discordClientId: string;
-  githubWebhookSecret: string;
   databasePath: string;
   port: number;
-  allowedOwners: string[] | null;
+  githubOAuthClientId: string;
+  githubOAuthClientSecret: string;
+  tokenEncryptionKey: string;
+  publicBaseUrl: string;
 }
 
 const REQUIRED = [
   "DISCORD_TOKEN",
   "DISCORD_CLIENT_ID",
-  "GITHUB_WEBHOOK_SECRET",
   "DATABASE_PATH",
   "PORT",
+  "GITHUB_OAUTH_CLIENT_ID",
+  "GITHUB_OAUTH_CLIENT_SECRET",
+  "TOKEN_ENCRYPTION_KEY",
+  "PUBLIC_BASE_URL",
 ] as const;
 
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
@@ -26,18 +31,19 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new Error(`PORT must be a positive integer, got: ${env.PORT}`);
   }
 
-  const owners = (env.ALLOWED_OWNERS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const allowedOwners = owners.length > 0 ? owners : null;
+  const key = env.TOKEN_ENCRYPTION_KEY!.trim();
+  if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+    throw new Error("TOKEN_ENCRYPTION_KEY must be 64 hex characters (32 bytes)");
+  }
 
   return {
     discordToken: env.DISCORD_TOKEN!.trim(),
     discordClientId: env.DISCORD_CLIENT_ID!.trim(),
-    githubWebhookSecret: env.GITHUB_WEBHOOK_SECRET!.trim(),
     databasePath: env.DATABASE_PATH!.trim(),
     port,
-    allowedOwners,
+    githubOAuthClientId: env.GITHUB_OAUTH_CLIENT_ID!.trim(),
+    githubOAuthClientSecret: env.GITHUB_OAUTH_CLIENT_SECRET!.trim(),
+    tokenEncryptionKey: key,
+    publicBaseUrl: env.PUBLIC_BASE_URL!.trim().replace(/\/+$/, ""),
   };
 }
