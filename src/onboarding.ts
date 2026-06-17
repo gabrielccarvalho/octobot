@@ -22,6 +22,9 @@ export function createOnConnect(deps: OnConnectDeps) {
     let watermark = new Date().toUTCString();
     try {
       const res = await deps.fetchNotifications(token, null);
+      // Any non-200 (304/401/403/etc.) intentionally falls through to the
+      // `new Date()` watermark above: the user is still baselined to "now" so
+      // the poller won't flood them, they just get no seen-thread backfill.
       if (res.status === 200) {
         for (const item of res.items) {
           deps.db.markNotified(discordId, item.threadId, item.updatedAt);

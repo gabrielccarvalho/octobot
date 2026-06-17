@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { it, expect, beforeEach, vi } from "vitest";
 import { createDatabase, type Database } from "./db";
 import { createOnConnect } from "./onboarding";
 import type { FetchResult } from "./github/notifications";
