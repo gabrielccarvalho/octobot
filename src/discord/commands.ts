@@ -3,18 +3,15 @@ import { REST, Routes, SlashCommandBuilder } from "discord.js";
 export const commands = [
   new SlashCommandBuilder()
     .setName("link")
-    .setDescription("Link your GitHub username to receive review DMs")
-    .addStringOption((opt) =>
-      opt.setName("username").setDescription("Your GitHub username").setRequired(true)
-    )
+    .setDescription("Connect your GitHub account to receive PR notifications")
     .toJSON(),
   new SlashCommandBuilder()
     .setName("unlink")
-    .setDescription("Stop receiving review DMs")
+    .setDescription("Disconnect your GitHub account and stop notifications")
     .toJSON(),
   new SlashCommandBuilder()
     .setName("status")
-    .setDescription("Show which GitHub username you're linked to")
+    .setDescription("Show which GitHub account you're connected as")
     .toJSON(),
 ];
 

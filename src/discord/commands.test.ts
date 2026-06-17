@@ -7,10 +7,8 @@ describe("commands", () => {
     expect(names).toEqual(["link", "status", "unlink"]);
   });
 
-  it("link takes a required username string option", () => {
+  it("link takes no options (OAuth flow, not username entry)", () => {
     const link = commands.find((c) => c.name === "link")!;
-    const option = link.options?.[0] as { name: string; required: boolean; type: number };
-    expect(option.name).toBe("username");
-    expect(option.required).toBe(true);
+    expect(link.options ?? []).toHaveLength(0);
   });
 });

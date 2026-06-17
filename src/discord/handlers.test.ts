@@ -1,22 +1,17 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createDatabase, type Database } from "../db";
-import {
-  handleLink,
-  handleUnlink,
-  handleStatus,
-  type CommandContext,
-} from "./handlers";
+import { handleLink, handleUnlink, handleStatus, type CommandContext, type LinkDeps } from "./handlers";
 
 let db: Database;
 let replies: string[];
 
-function ctx(opts: { userId?: string; option?: string | null }): CommandContext {
-  return {
-    userId: opts.userId ?? "user1",
-    guildId: "guild1",
-    getOption: () => opts.option ?? null,
-    reply: async (m: string) => { replies.push(m); },
-  };
+const linkDeps: LinkDeps = {
+  generateState: () => "test-state",
+  authorizeUrl: (state) => `https://github.com/login/oauth/authorize?state=${state}`,
+};
+
+function ctx(userId = "user1"): CommandContext {
+  return { userId, guildId: "g1", getOption: () => null, reply: async (m) => { replies.push(m); } };
 }
 
 beforeEach(() => {
@@ -25,48 +20,36 @@ beforeEach(() => {
 });
 
 describe("/link", () => {
-  it("links a valid username", async () => {
-    await handleLink(ctx({ option: "octocat" }), db);
-    expect(db.getLinkByDiscordId("user1")?.githubLogin).toBe("octocat");
-    expect(replies[0]).toMatch(/octocat/);
-  });
-
-  it("rejects an invalid username", async () => {
-    await handleLink(ctx({ option: "not a username!" }), db);
-    expect(db.getLinkByDiscordId("user1")).toBeNull();
-    expect(replies[0]).toMatch(/valid GitHub username/i);
-  });
-
-  it("rejects a username already linked by someone else", async () => {
-    db.upsertLink("other", "octocat", null);
-    await handleLink(ctx({ userId: "user1", option: "octocat" }), db);
-    expect(replies[0]).toMatch(/already linked/i);
+  it("stores a state and replies with an authorize URL", async () => {
+    await handleLink(ctx(), db, linkDeps);
+    expect(replies[0]).toContain("https://github.com/login/oauth/authorize?state=test-state");
+    expect(db.consumeState("test-state", 60_000)).toBe("user1");
   });
 });
 
 describe("/unlink", () => {
-  it("removes an existing link", async () => {
-    db.upsertLink("user1", "octocat", null);
-    await handleUnlink(ctx({ userId: "user1" }), db);
-    expect(db.getLinkByDiscordId("user1")).toBeNull();
-    expect(replies[0]).toMatch(/unlinked/i);
+  it("removes an existing connection", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    await handleUnlink(ctx(), db);
+    expect(db.getUser("user1")).toBeNull();
+    expect(replies[0]).toMatch(/disconnected/i);
   });
 
-  it("reports when there was nothing to unlink", async () => {
-    await handleUnlink(ctx({ userId: "user1" }), db);
-    expect(replies[0]).toMatch(/not linked/i);
+  it("reports when not connected", async () => {
+    await handleUnlink(ctx(), db);
+    expect(replies[0]).toMatch(/not connected/i);
   });
 });
 
 describe("/status", () => {
-  it("shows the linked username", async () => {
-    db.upsertLink("user1", "octocat", null);
-    await handleStatus(ctx({ userId: "user1" }), db);
-    expect(replies[0]).toMatch(/octocat/);
+  it("shows the connected login", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    await handleStatus(ctx(), db);
+    expect(replies[0]).toContain("octocat");
   });
 
-  it("shows when not linked", async () => {
-    await handleStatus(ctx({ userId: "user1" }), db);
-    expect(replies[0]).toMatch(/not linked/i);
+  it("shows when not connected", async () => {
+    await handleStatus(ctx(), db);
+    expect(replies[0]).toMatch(/not connected/i);
   });
 });

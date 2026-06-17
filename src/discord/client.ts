@@ -11,6 +11,7 @@ import {
   handleUnlink,
   handleStatus,
   type CommandContext,
+  type LinkDeps,
 } from "./handlers";
 
 function toContext(interaction: ChatInputCommandInteraction): CommandContext {
@@ -19,10 +20,7 @@ function toContext(interaction: ChatInputCommandInteraction): CommandContext {
     guildId: interaction.guildId,
     getOption: (name) => interaction.options.getString(name),
     reply: async (message) => {
-      await interaction.reply({
-        content: message,
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
     },
   };
 }
@@ -34,7 +32,8 @@ export interface DiscordRuntime {
 
 export async function startDiscord(
   token: string,
-  db: Database
+  db: Database,
+  linkDeps: LinkDeps
 ): Promise<DiscordRuntime> {
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -42,22 +41,16 @@ export async function startDiscord(
     if (!interaction.isChatInputCommand()) return;
     const ctx = toContext(interaction);
     try {
-      if (interaction.commandName === "link") await handleLink(ctx, db);
+      if (interaction.commandName === "link") await handleLink(ctx, db, linkDeps);
       else if (interaction.commandName === "unlink") await handleUnlink(ctx, db);
       else if (interaction.commandName === "status") await handleStatus(ctx, db);
     } catch (err) {
       console.error("Command handler error:", err);
       try {
         if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({
-            content: "Something went wrong.",
-            flags: MessageFlags.Ephemeral,
-          });
+          await interaction.followUp({ content: "Something went wrong.", flags: MessageFlags.Ephemeral });
         } else {
-          await interaction.reply({
-            content: "Something went wrong.",
-            flags: MessageFlags.Ephemeral,
-          });
+          await interaction.reply({ content: "Something went wrong.", flags: MessageFlags.Ephemeral });
         }
       } catch (replyErr) {
         console.error("Failed to send error reply:", replyErr);
