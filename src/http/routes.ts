@@ -8,6 +8,7 @@ export interface HttpDeps {
   exchangeCode(code: string): Promise<string>;
   fetchViewerLogin(token: string): Promise<string>;
   stateTtlMs: number;
+  onConnect(discordId: string, token: string, githubLogin: string): Promise<void>;
 }
 
 function page(title: string, body: string): string {
@@ -33,6 +34,11 @@ export function registerHttpRoutes(app: FastifyInstance, deps: HttpDeps): void {
       const token = await deps.exchangeCode(code);
       const login = await deps.fetchViewerLogin(token);
       deps.db.upsertUser(discordId, login, deps.encrypt(token));
+      try {
+        await deps.onConnect(discordId, token, login);
+      } catch (err) {
+        req.log.error(err);
+      }
       return reply
         .type("text/html")
         .send(page("Connected", `Connected as <b>${login}</b>. You can return to Discord.`));

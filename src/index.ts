@@ -13,6 +13,7 @@ import {
   QUERY_MY_PRS_AWAITING_REVIEW,
 } from "./github/search";
 import { registerHttpRoutes } from "./http/routes";
+import { createOnConnect } from "./onboarding";
 import { startPoller } from "./poller";
 
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -48,6 +49,15 @@ async function main() {
 
   const { client, sender } = await startDiscord(config.discordToken, db, linkDeps, statusDeps);
 
+  const onConnect = createOnConnect({
+    db,
+    sender,
+    fetchNotifications: (token, lastModified) => fetchNotifications(token, lastModified),
+    searchPullRequests: (token, query) => searchPullRequests(token, query),
+    awaitingQuery: QUERY_AWAITING_MY_REVIEW,
+    minePrsQuery: QUERY_MY_PRS_AWAITING_REVIEW,
+  });
+
   const app = Fastify({ logger: true });
   registerHttpRoutes(app, {
     db,
@@ -60,6 +70,7 @@ async function main() {
       }),
     fetchViewerLogin: (token) => fetchViewerLogin(token),
     stateTtlMs: STATE_TTL_MS,
+    onConnect,
   });
   await app.listen({ host: "0.0.0.0", port: config.port });
 
