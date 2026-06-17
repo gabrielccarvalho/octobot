@@ -68,4 +68,14 @@ describe("GET /oauth/callback", () => {
     expect(res.statusCode).toBe(200);
     expect(onConnect).toHaveBeenCalledWith("discord-9", "gho_token", "octocat");
   });
+
+  it("still returns the success page and stores the user when onConnect throws", async () => {
+    db.createState("s10", "discord-10");
+    const onConnect = vi.fn(async () => { throw new Error("summary failed"); });
+    const app = await buildApp({ onConnect });
+    const res = await app.inject({ method: "GET", url: "/oauth/callback?code=abc&state=s10" });
+    expect(res.statusCode).toBe(200);
+    expect(onConnect).toHaveBeenCalledTimes(1);
+    expect(db.getUser("discord-10")?.githubLogin).toBe("octocat");
+  });
 });

@@ -81,7 +81,7 @@ it("does not mark notified when the DM fails", async () => {
 it("skips a user that has no baseline (null lastModified)", async () => {
   const fresh = createDatabase(":memory:");
   fresh.upsertUser("d2", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-  const fetchNotifications = vi.fn(async () => nextResult);
+  const fetchNotifications = vi.fn(); // intentionally never called; guard returns first
   const localDeps: PollerDeps = {
     db: fresh,
     sender,
