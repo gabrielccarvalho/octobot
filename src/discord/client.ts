@@ -12,6 +12,7 @@ import {
   handleStatus,
   type CommandContext,
   type LinkDeps,
+  type StatusDeps,
 } from "./handlers";
 
 function toContext(interaction: ChatInputCommandInteraction): CommandContext {
@@ -20,7 +21,11 @@ function toContext(interaction: ChatInputCommandInteraction): CommandContext {
     guildId: interaction.guildId,
     getOption: (name) => interaction.options.getString(name),
     reply: async (message) => {
-      await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content: message });
+      } else {
+        await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
+      }
     },
   };
 }
@@ -33,7 +38,8 @@ export interface DiscordRuntime {
 export async function startDiscord(
   token: string,
   db: Database,
-  linkDeps: LinkDeps
+  linkDeps: LinkDeps,
+  statusDeps: StatusDeps
 ): Promise<DiscordRuntime> {
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -41,9 +47,14 @@ export async function startDiscord(
     if (!interaction.isChatInputCommand()) return;
     const ctx = toContext(interaction);
     try {
-      if (interaction.commandName === "link") await handleLink(ctx, db, linkDeps);
-      else if (interaction.commandName === "unlink") await handleUnlink(ctx, db);
-      else if (interaction.commandName === "status") await handleStatus(ctx, db);
+      if (interaction.commandName === "link") {
+        await handleLink(ctx, db, linkDeps);
+      } else if (interaction.commandName === "unlink") {
+        await handleUnlink(ctx, db);
+      } else if (interaction.commandName === "status") {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await handleStatus(ctx, db, statusDeps);
+      }
     } catch (err) {
       console.error("Command handler error:", err);
       try {
