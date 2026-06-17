@@ -5,6 +5,7 @@ export interface NotificationItem {
   reason: string;
   updatedAt: string;
   repoFullName: string;
+  prNumber: number;
   prTitle: string;
   prUrl: string;
 }
@@ -38,6 +39,7 @@ export function parseNotifications(raw: RawNotification[]): NotificationItem[] {
       reason: n.reason,
       updatedAt: n.updated_at,
       repoFullName: n.repository.full_name,
+      prNumber: Number(n.subject.url.split("/").pop()),
       prTitle: n.subject.title,
       prUrl: toHtmlUrl(n.subject.url),
     }));

@@ -38,6 +38,7 @@ describe("parseNotifications", () => {
         reason: "review_requested",
         updatedAt: "2026-06-17T10:00:00Z",
         repoFullName: "acme/repo",
+        prNumber: 42,
         prTitle: "Fix bug",
         prUrl: "https://github.com/acme/repo/pull/42",
       },
