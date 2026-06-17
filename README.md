@@ -155,18 +155,42 @@ In Discord (any channel where the bot is present, or a DM with the bot):
 | --- | --- |
 | `/link` | Returns a personal GitHub authorization link — click it to connect. |
 | `/unlink` | Disconnects your account and stops notifications. |
-| `/status` | Shows which GitHub account you're connected as. |
+| `/status` | Shows your GitHub login plus what needs your attention right now (see below). |
 
 Once connected, you'll receive DMs like:
 
 ```
-🔔 Review requested on owner/repo
-Fix the widget layout
-https://github.com/owner/repo/pull/42
+🔔 Review requested · owner/repo · 5 minutes ago
+[#42 Fix the widget layout](https://github.com/owner/repo/pull/42)
 ```
 
-Notification prefixes by reason: 🔔 Review requested · 💬 New comment ·
-📣 Mentioned · 🔀 State changed · ✍️ Activity on your PR · 🔔 New activity.
+The PR link is a masked link (no bulky embed), and the timestamp is rendered by
+Discord as a live, localized relative time. Notification prefixes by reason:
+🔔 Review requested · 💬 New comment · 📣 Mentioned · 🔀 State changed ·
+✍️ Activity on your PR · 🔔 New activity.
+
+### `/status`
+
+`/status` shows your connected login and two on-demand sections (via the GitHub
+Search API):
+
+```
+✅ Connected as octocat
+
+🔍 Awaiting your review (2)
+• [acme/api #128 Add rate limiting](…)
+• [acme/web #54 Fix nav overflow](…)
+
+📝 Your PRs awaiting review (1)
+• [acme/web #61 Dark mode](…)
+```
+
+- **🔍 Awaiting your review** — every open PR where your review is requested.
+- **📝 Your PRs awaiting review** — your open, non-draft PRs that aren't approved
+  yet.
+
+Each section lists up to 10 PRs (with "…and N more" beyond that). The reply is
+ephemeral and only visible to you.
 
 > Notifications are **read-only** — the bot never marks your GitHub notifications
 > as read. Delivery is deduplicated per pull-request thread, so genuine new
