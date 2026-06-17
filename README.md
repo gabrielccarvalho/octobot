@@ -177,20 +177,26 @@ Search API):
 ```
 ✅ Connected as octocat
 
-🔍 Awaiting your review (2)
-• [acme/api #128 Add rate limiting](…)
-• [acme/web #54 Fix nav overflow](…)
+🔍 Awaiting your review (3)
+**acme/api**
+#128 [Add rate limiting](…) · 5 minutes ago
+#130 [Fix pagination](…) · 2 hours ago
+**acme/web**
+#54 [Fix nav overflow](…) · yesterday
 
 📝 Your PRs awaiting review (1)
-• [acme/web #61 Dark mode](…)
+**acme/web**
+#61 [Dark mode](…) · 3 days ago
 ```
 
 - **🔍 Awaiting your review** — every open PR where your review is requested.
 - **📝 Your PRs awaiting review** — your open, non-draft PRs that aren't approved
   yet.
 
-Each section lists up to 10 PRs (with "…and N more" beyond that). The reply is
-ephemeral and only visible to you.
+PRs are grouped by repository under a bold header; each line is
+`#<number> [<title>](<url>) · <relative time>` (the title is a masked link, the
+time is rendered live by Discord). Each section lists up to 10 PRs (with "…and N
+more" beyond that). The reply is ephemeral and only visible to you.
 
 > Notifications are **read-only** — the bot never marks your GitHub notifications
 > as read. Delivery is deduplicated per pull-request thread, so genuine new
