@@ -35,8 +35,14 @@ const REASON: Record<string, { emoji: string; label: string }> = {
 };
 const FALLBACK = { emoji: "🔔", label: "New activity" };
 
-export function formatNotification(item: NotificationItem): string {
-  const { emoji, label } = REASON[item.reason] ?? FALLBACK;
+const VERDICT_LABEL: Record<Verdict, { emoji: string; label: string }> = {
+  approved: { emoji: "✅", label: "Your PR was approved" },
+  changes_requested: { emoji: "🔧", label: "Changes requested on your PR" },
+  reviewed: { emoji: "💬", label: "New review on your PR" },
+};
+
+export function formatNotification(item: NotificationItem, verdict?: Verdict | null): string {
+  const { emoji, label } = verdict ? VERDICT_LABEL[verdict] : (REASON[item.reason] ?? FALLBACK);
   // Discord renders <t:UNIX:R> as a localized, auto-updating "5 minutes ago".
   const unix = Math.floor(new Date(item.updatedAt).getTime() / 1000);
   // Masked link keeps it clickable while suppressing Discord's bulky link embed.

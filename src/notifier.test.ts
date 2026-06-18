@@ -30,6 +30,28 @@ describe("formatNotification", () => {
   it("falls back to a generic prefix for unknown reasons", () => {
     expect(formatNotification({ ...item, reason: "subscribed" })).toContain("New activity");
   });
+
+  it("renders the approved verdict, overriding the reason label", () => {
+    const first = formatNotification(item, "approved").split("\n")[0];
+    expect(first).toContain("✅");
+    expect(first).toContain("**Your PR was approved**");
+  });
+
+  it("renders the changes-requested verdict", () => {
+    const first = formatNotification(item, "changes_requested").split("\n")[0];
+    expect(first).toContain("🔧");
+    expect(first).toContain("**Changes requested on your PR**");
+  });
+
+  it("renders the reviewed verdict", () => {
+    const first = formatNotification(item, "reviewed").split("\n")[0];
+    expect(first).toContain("💬");
+    expect(first).toContain("**New review on your PR**");
+  });
+
+  it("ignores a null verdict and uses the reason label", () => {
+    expect(formatNotification(item, null)).toContain("**Review requested**");
+  });
 });
 
 describe("resolveVerdict", () => {
