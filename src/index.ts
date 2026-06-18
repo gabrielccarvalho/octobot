@@ -7,6 +7,7 @@ import { registerCommands } from "./discord/commands";
 import { startDiscord } from "./discord/client";
 import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin } from "./github/oauth";
 import { fetchNotifications } from "./github/notifications";
+import { fetchLatestReview } from "./github/reviews";
 import {
   searchPullRequests,
   QUERY_AWAITING_MY_REVIEW,
@@ -83,6 +84,8 @@ async function main() {
         config.tokenEncryptionKey
       ),
     fetchNotifications: (token, lastModified) => fetchNotifications(token, lastModified),
+    fetchLatestReview: (token, repoFullName, prNumber) =>
+      fetchLatestReview(token, repoFullName, prNumber),
   });
 
   let closing = false;

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { formatNotification } from "./notifier";
+import { formatNotification, resolveVerdict } from "./notifier";
 import type { NotificationItem } from "./github/notifications";
+import type { LatestReview } from "./github/reviews";
 
 const item: NotificationItem = {
   threadId: "t1",
@@ -28,5 +29,57 @@ describe("formatNotification", () => {
 
   it("falls back to a generic prefix for unknown reasons", () => {
     expect(formatNotification({ ...item, reason: "subscribed" })).toContain("New activity");
+  });
+
+  it("renders the approved verdict, overriding the reason label", () => {
+    const first = formatNotification(item, "approved").split("\n")[0];
+    expect(first).toContain("✅");
+    expect(first).toContain("**Your PR was approved**");
+  });
+
+  it("renders the changes-requested verdict", () => {
+    const first = formatNotification(item, "changes_requested").split("\n")[0];
+    expect(first).toContain("🔧");
+    expect(first).toContain("**Changes requested on your PR**");
+  });
+
+  it("renders the reviewed verdict", () => {
+    const first = formatNotification(item, "reviewed").split("\n")[0];
+    expect(first).toContain("💬");
+    expect(first).toContain("**New review on your PR**");
+  });
+
+  it("ignores a null verdict and uses the reason label", () => {
+    expect(formatNotification(item, null)).toContain("**Review requested**");
+  });
+});
+
+describe("resolveVerdict", () => {
+  // item.updatedAt is "2026-06-17T10:00:00Z" (defined at top of file)
+  const at = (state: LatestReview["state"], submittedAt: string): LatestReview => ({ state, submittedAt });
+
+  it("returns null when there is no review", () => {
+    expect(resolveVerdict(item, null)).toBeNull();
+  });
+
+  it("maps an approval submitted at the notification time", () => {
+    expect(resolveVerdict(item, at("APPROVED", "2026-06-17T10:00:00Z"))).toBe("approved");
+  });
+
+  it("maps changes requested", () => {
+    expect(resolveVerdict(item, at("CHANGES_REQUESTED", "2026-06-17T10:00:05Z"))).toBe("changes_requested");
+  });
+
+  it("maps a commented review to reviewed", () => {
+    expect(resolveVerdict(item, at("COMMENTED", "2026-06-17T10:00:00Z"))).toBe("reviewed");
+  });
+
+  it("returns null for a dismissed review", () => {
+    expect(resolveVerdict(item, at("DISMISSED", "2026-06-17T10:00:00Z"))).toBeNull();
+  });
+
+  it("ignores a stale review outside the timestamp tolerance", () => {
+    // approval happened 5 minutes before this notification's updatedAt -> not the trigger
+    expect(resolveVerdict(item, at("APPROVED", "2026-06-17T09:55:00Z"))).toBeNull();
   });
 });

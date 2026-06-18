@@ -1,12 +1,14 @@
 import type { Database, User } from "./db";
 import type { FetchResult } from "./github/notifications";
-import { formatNotification, type DmSender } from "./notifier";
+import { resolveVerdict, formatNotification, type DmSender } from "./notifier";
+import type { LatestReview } from "./github/reviews";
 
 export interface PollerDeps {
   db: Database;
   sender: DmSender;
   decryptToken(user: User): string;
   fetchNotifications(token: string, lastModified: string | null): Promise<FetchResult>;
+  fetchLatestReview(token: string, repoFullName: string, prNumber: number): Promise<LatestReview | null>;
 }
 
 export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
@@ -45,8 +47,16 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
 
   for (const item of res.items) {
     if (deps.db.wasNotified(user.discordId, item.threadId, item.updatedAt)) continue;
+    let verdict = null;
     try {
-      await deps.sender.sendDm(user.discordId, formatNotification(item));
+      const review = await deps.fetchLatestReview(token, item.repoFullName, item.prNumber);
+      verdict = resolveVerdict(item, review);
+    } catch (err) {
+      // Enrichment is best-effort; never let it drop the notification.
+      console.warn(`Verdict lookup failed for ${user.discordId} thread ${item.threadId}:`, err);
+    }
+    try {
+      await deps.sender.sendDm(user.discordId, formatNotification(item, verdict));
       deps.db.markNotified(user.discordId, item.threadId, item.updatedAt);
     } catch (err) {
       console.warn(`Failed to DM ${user.discordId} for thread ${item.threadId}:`, err);
