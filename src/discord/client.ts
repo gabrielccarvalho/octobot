@@ -2,17 +2,35 @@ import {
   Client,
   GatewayIntentBits,
   MessageFlags,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   type ChatInputCommandInteraction,
+  type StringSelectMenuInteraction,
+  type ButtonInteraction,
 } from "discord.js";
 import type { Database } from "../db";
 import type { DmSender } from "../notifier";
+import { buildDigest, type DigestDeps } from "../digest";
 import {
   handleLink,
   handleUnlink,
   handleStatus,
+  subjectOptions,
+  reasonOptions,
+  applySubjectSelection,
+  applyReasonSelection,
+  toggleDigest,
+  digestStatusText,
+  LISTEN_TO_SUBJECTS_ID,
+  LISTEN_TO_REASONS_ID,
+  DIGEST_TOGGLE_ID,
+  DIGEST_PREVIEW_ID,
   type CommandContext,
   type LinkDeps,
   type StatusDeps,
+  type SubscriptionOption,
 } from "./handlers";
 
 function toContext(interaction: ChatInputCommandInteraction): CommandContext {
@@ -39,11 +57,95 @@ export async function startDiscord(
   token: string,
   db: Database,
   linkDeps: LinkDeps,
-  statusDeps: StatusDeps
+  statusDeps: StatusDeps,
+  digestDeps: DigestDeps
 ): Promise<DiscordRuntime> {
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
+  const menuRow = (customId: string, placeholder: string, options: SubscriptionOption[]) =>
+    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(customId)
+        .setPlaceholder(placeholder)
+        .setMinValues(0)
+        .setMaxValues(options.length)
+        .addOptions(options.map((o) => ({ label: o.label, value: o.value, default: o.default })))
+    );
+
+  const listenToComponents = (userId: string) => [
+    menuRow(LISTEN_TO_SUBJECTS_ID, "Subject types to receive", subjectOptions(db, userId)),
+    menuRow(LISTEN_TO_REASONS_ID, "Reasons to receive", reasonOptions(db, userId)),
+  ];
+
+  const digestButtons = (enabled: boolean) =>
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(DIGEST_TOGGLE_ID)
+        .setLabel(enabled ? "Turn off" : "Turn on")
+        .setStyle(enabled ? ButtonStyle.Danger : ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(DIGEST_PREVIEW_ID)
+        .setLabel("Preview now")
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+  const handleDigestButton = async (interaction: ButtonInteraction) => {
+    const userId = interaction.user.id;
+    if (interaction.customId === DIGEST_TOGGLE_ID) {
+      if (!db.getUser(userId)) {
+        await interaction.update({
+          content: "You're not connected. Run `/link` first.",
+          components: [],
+        });
+        return;
+      }
+      const enabled = toggleDigest(db, userId);
+      await interaction.update({
+        content: digestStatusText(enabled),
+        components: [digestButtons(enabled)],
+      });
+    } else if (interaction.customId === DIGEST_PREVIEW_ID) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const user = db.getUser(userId);
+      const message = user ? await buildDigest(digestDeps, user) : null;
+      await interaction.editReply(
+        message ?? "Nothing to show right now — no PRs need your attention. 🎉"
+      );
+    }
+  };
+
+  const handleListenToSelect = async (interaction: StringSelectMenuInteraction) => {
+    const userId = interaction.user.id;
+    if (interaction.customId === LISTEN_TO_SUBJECTS_ID) {
+      applySubjectSelection(db, userId, interaction.values);
+    } else if (interaction.customId === LISTEN_TO_REASONS_ID) {
+      applyReasonSelection(db, userId, interaction.values);
+    } else {
+      return;
+    }
+    await interaction.update({
+      content: "🎚️ **Saved.** Adjust anytime — changes save automatically.",
+      components: listenToComponents(userId),
+    });
+  };
+
   client.on("interactionCreate", async (interaction) => {
+    if (interaction.isButton()) {
+      try {
+        await handleDigestButton(interaction);
+      } catch (err) {
+        console.error("Button handler error:", err);
+      }
+      return;
+    }
+    if (interaction.isStringSelectMenu()) {
+      try {
+        await handleListenToSelect(interaction);
+      } catch (err) {
+        console.error("Select menu handler error:", err);
+      }
+      return;
+    }
     if (!interaction.isChatInputCommand()) return;
     const ctx = toContext(interaction);
     try {
@@ -54,6 +156,33 @@ export async function startDiscord(
       } else if (interaction.commandName === "status") {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         await handleStatus(ctx, db, statusDeps);
+      } else if (interaction.commandName === "digest") {
+        if (!db.getUser(interaction.user.id)) {
+          await interaction.reply({
+            content: "You're not connected. Run `/link` first.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+        const enabled = db.getDigestEnabled(interaction.user.id);
+        await interaction.reply({
+          content: digestStatusText(enabled),
+          components: [digestButtons(enabled)],
+          flags: MessageFlags.Ephemeral,
+        });
+      } else if (interaction.commandName === "listen-to") {
+        if (!db.getUser(interaction.user.id)) {
+          await interaction.reply({
+            content: "You're not connected. Run `/link` first.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+        await interaction.reply({
+          content: "🎚️ **Choose what to be notified about.** Changes save automatically.",
+          components: listenToComponents(interaction.user.id),
+          flags: MessageFlags.Ephemeral,
+        });
       }
     } catch (err) {
       console.error("Command handler error:", err);

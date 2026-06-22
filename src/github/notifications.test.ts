@@ -9,7 +9,11 @@ const prRaw = {
   repository: { full_name: "acme/repo" },
   subject: { title: "Fix bug", url: "https://api.github.com/repos/acme/repo/pulls/42", type: "PullRequest" },
 };
-const issueRaw = { ...prRaw, id: "t2", subject: { ...prRaw.subject, type: "Issue" } };
+const issueRaw = {
+  ...prRaw,
+  id: "t2",
+  subject: { title: "Fix bug", url: "https://api.github.com/repos/acme/repo/issues/42", type: "Issue" },
+};
 
 function fakeFetch(status: number, body: unknown, headers: Record<string, string> = {}): FetchLike {
   return async () => ({
@@ -30,19 +34,39 @@ describe("toHtmlUrl", () => {
 });
 
 describe("parseNotifications", () => {
-  it("keeps only pull requests and maps fields", () => {
-    const items = parseNotifications([prRaw, issueRaw] as any);
-    expect(items).toEqual([
+  it("maps a pull request to subject-generic fields", () => {
+    expect(parseNotifications([prRaw] as any)).toEqual([
       {
         threadId: "t1",
         reason: "review_requested",
         updatedAt: "2026-06-17T10:00:00Z",
         repoFullName: "acme/repo",
-        prNumber: 42,
-        prTitle: "Fix bug",
-        prUrl: "https://github.com/acme/repo/pull/42",
+        subjectType: "PullRequest",
+        subjectNumber: 42,
+        subjectTitle: "Fix bug",
+        subjectUrl: "https://github.com/acme/repo/pull/42",
       },
     ]);
+  });
+
+  it("keeps non-PR subjects (issues) instead of dropping them", () => {
+    const items = parseNotifications([issueRaw] as any);
+    expect(items).toHaveLength(1);
+    expect(items[0].subjectType).toBe("Issue");
+    expect(items[0].subjectNumber).toBe(42);
+    expect(items[0].subjectUrl).toBe("https://github.com/acme/repo/issues/42");
+  });
+
+  it("uses the repo url and a null number for numberless subjects", () => {
+    const releaseRaw = {
+      ...prRaw,
+      id: "t3",
+      subject: { title: "v1.2.0", url: "https://api.github.com/repos/acme/repo/releases/9", type: "Release" },
+    };
+    const items = parseNotifications([releaseRaw] as any);
+    expect(items[0].subjectType).toBe("Release");
+    expect(items[0].subjectNumber).toBeNull();
+    expect(items[0].subjectUrl).toBe("https://github.com/acme/repo");
   });
 });
 

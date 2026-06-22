@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatAttention, type AttentionList } from "./status";
+import { formatAttention, formatDigest, type AttentionList } from "./status";
 import type { PrSummary } from "./github/search";
 
 const UPDATED_AT = "2026-06-17T10:00:00Z";
@@ -65,5 +65,21 @@ describe("formatAttention", () => {
       Array.from({ length: 10 }, (_, i) => pr(i + 1, "y".repeat(59), repo));
     const msg = formatAttention("octocat", attention({ incoming: full("acme/api"), mine: full("acme/web") }));
     expect(msg.length).toBeLessThanOrEqual(2000);
+  });
+});
+
+describe("formatDigest", () => {
+  it("uses a digest header and renders both sections", () => {
+    const list = {
+      incoming: [
+        { repoFullName: "acme/repo", number: 7, title: "Fix bug", url: "https://github.com/acme/repo/pull/7", updatedAt: "2026-06-17T10:00:00Z" },
+      ],
+      mine: [],
+    };
+    const msg = formatDigest("octocat", list);
+    expect(msg).toContain("Daily PR digest");
+    expect(msg).toContain("octocat");
+    expect(msg).toContain("#7 [Fix bug](https://github.com/acme/repo/pull/7)");
+    expect(msg).toContain("No open PRs of yours are waiting on a review.");
   });
 });

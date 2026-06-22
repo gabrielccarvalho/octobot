@@ -4,7 +4,7 @@ import { commands } from "./commands";
 describe("commands", () => {
   it("defines link, unlink and status", () => {
     const names = commands.map((c) => c.name).sort();
-    expect(names).toEqual(["link", "status", "unlink"]);
+    expect(names).toEqual(["digest", "link", "listen-to", "status", "unlink"]);
   });
 
   it("link takes no options (OAuth flow, not username entry)", () => {

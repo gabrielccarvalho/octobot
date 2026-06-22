@@ -16,6 +16,8 @@ import {
 import { registerHttpRoutes } from "./http/routes";
 import { createOnConnect } from "./onboarding";
 import { startPoller } from "./poller";
+import { startDigestScheduler } from "./scheduler";
+import type { DigestDeps } from "./digest";
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -34,12 +36,16 @@ async function main() {
   };
 
   await registerCommands(config.discordToken, config.discordClientId);
+
+  const decryptToken = (user: import("./db").User) =>
+    decrypt(
+      { ciphertext: user.tokenCiphertext, iv: user.tokenIv, tag: user.tokenTag },
+      config.tokenEncryptionKey
+    );
+
   const statusDeps = {
     listAttention: async (user: import("./db").User) => {
-      const token = decrypt(
-        { ciphertext: user.tokenCiphertext, iv: user.tokenIv, tag: user.tokenTag },
-        config.tokenEncryptionKey
-      );
+      const token = decryptToken(user);
       const [incoming, mine] = await Promise.all([
         searchPullRequests(token, QUERY_AWAITING_MY_REVIEW),
         searchPullRequests(token, QUERY_MY_PRS_AWAITING_REVIEW),
@@ -48,7 +54,23 @@ async function main() {
     },
   };
 
-  const { client, sender } = await startDiscord(config.discordToken, db, linkDeps, statusDeps);
+  const digestDeps: DigestDeps = {
+    db,
+    sender: undefined as never, // set after startDiscord returns the sender
+    decryptToken,
+    searchPullRequests: (token, query) => searchPullRequests(token, query),
+    awaitingQuery: QUERY_AWAITING_MY_REVIEW,
+    minePrsQuery: QUERY_MY_PRS_AWAITING_REVIEW,
+  };
+
+  const { client, sender } = await startDiscord(
+    config.discordToken,
+    db,
+    linkDeps,
+    statusDeps,
+    digestDeps
+  );
+  digestDeps.sender = sender;
 
   const onConnect = createOnConnect({
     db,
@@ -78,15 +100,13 @@ async function main() {
   const poller = startPoller({
     db,
     sender,
-    decryptToken: (user) =>
-      decrypt(
-        { ciphertext: user.tokenCiphertext, iv: user.tokenIv, tag: user.tokenTag },
-        config.tokenEncryptionKey
-      ),
+    decryptToken,
     fetchNotifications: (token, lastModified) => fetchNotifications(token, lastModified),
     fetchLatestReview: (token, repoFullName, prNumber) =>
       fetchLatestReview(token, repoFullName, prNumber),
   });
+
+  const scheduler = startDigestScheduler(digestDeps);
 
   let closing = false;
   const shutdown = async () => {
@@ -94,6 +114,7 @@ async function main() {
     closing = true;
     try {
       poller.stop();
+      scheduler.stop();
       await app.close();
       await client.destroy();
       db.close();

@@ -8,9 +8,10 @@ const item: NotificationItem = {
   reason: "review_requested",
   updatedAt: "2026-06-17T10:00:00Z",
   repoFullName: "acme/repo",
-  prNumber: 42,
-  prTitle: "Fix the widget",
-  prUrl: "https://github.com/acme/repo/pull/42",
+  subjectType: "PullRequest",
+  subjectNumber: 42,
+  subjectTitle: "Fix the widget",
+  subjectUrl: "https://github.com/acme/repo/pull/42",
 };
 
 describe("formatNotification", () => {
@@ -28,7 +29,20 @@ describe("formatNotification", () => {
   });
 
   it("falls back to a generic prefix for unknown reasons", () => {
-    expect(formatNotification({ ...item, reason: "subscribed" })).toContain("New activity");
+    expect(formatNotification({ ...item, reason: "totally_made_up" })).toContain("New activity");
+  });
+
+  it("renders a numberless subject without a leading #", () => {
+    const release = {
+      ...item,
+      reason: "subscribed",
+      subjectType: "Release",
+      subjectNumber: null,
+      subjectTitle: "v1.2.0",
+      subjectUrl: "https://github.com/acme/repo",
+    };
+    const second = formatNotification(release).split("\n")[1];
+    expect(second).toBe("[v1.2.0](https://github.com/acme/repo)");
   });
 
   it("renders the approved verdict, overriding the reason label", () => {

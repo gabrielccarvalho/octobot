@@ -52,8 +52,7 @@ function renderSection(label: string, prs: PrSummary[], emptyLine: string): stri
   return `${label} (${prs.length})\n${blocks.join("\n")}${more}`;
 }
 
-export function formatAttention(githubLogin: string, list: AttentionList): string {
-  const header = `✅ Connected as \`${githubLogin}\``;
+function renderBody(list: AttentionList): string {
   const incoming = renderSection(
     "🔍 Awaiting your review",
     list.incoming,
@@ -64,5 +63,15 @@ export function formatAttention(githubLogin: string, list: AttentionList): strin
     list.mine,
     "No open PRs of yours are waiting on a review."
   );
-  return clampMessage(`${header}\n\n${incoming}\n\n${mine}`);
+  return `${incoming}\n\n${mine}`;
+}
+
+export function formatAttention(githubLogin: string, list: AttentionList): string {
+  const header = `✅ Connected as \`${githubLogin}\``;
+  return clampMessage(`${header}\n\n${renderBody(list)}`);
+}
+
+export function formatDigest(githubLogin: string, list: AttentionList): string {
+  const header = `☀️ **Daily PR digest** for \`${githubLogin}\``;
+  return clampMessage(`${header}\n\n${renderBody(list)}`);
 }

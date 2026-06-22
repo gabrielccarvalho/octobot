@@ -4,6 +4,12 @@ import {
   handleLink,
   handleUnlink,
   handleStatus,
+  subjectOptions,
+  reasonOptions,
+  applySubjectSelection,
+  applyReasonSelection,
+  toggleDigest,
+  digestStatusText,
   type CommandContext,
   type LinkDeps,
   type StatusDeps,
@@ -102,5 +108,42 @@ describe("/status", () => {
     };
     await handleStatus(ctx(), db, deps);
     expect(replies[0]).toMatch(/try again/i);
+  });
+});
+
+describe("/digest", () => {
+  it("toggles the digest flag and returns the new state", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    expect(db.getDigestEnabled("user1")).toBe(true);
+    expect(toggleDigest(db, "user1")).toBe(false);
+    expect(db.getDigestEnabled("user1")).toBe(false);
+    expect(toggleDigest(db, "user1")).toBe(true);
+  });
+
+  it("describes the current state", () => {
+    expect(digestStatusText(true)).toMatch(/on/i);
+    expect(digestStatusText(false)).toMatch(/off/i);
+  });
+});
+
+describe("/listen-to options", () => {
+  it("pre-checks PullRequest and all reasons by default", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    const subjects = subjectOptions(db, "user1");
+    expect(subjects.find((o) => o.value === "PullRequest")!.default).toBe(true);
+    expect(subjects.find((o) => o.value === "Issue")!.default).toBe(false);
+    // reasons default to pass-all => every option pre-checked
+    expect(reasonOptions(db, "user1").every((o) => o.default)).toBe(true);
+  });
+
+  it("persists subject and reason selections independently", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    applySubjectSelection(db, "user1", ["PullRequest", "Issue"]);
+    applyReasonSelection(db, "user1", ["mention"]);
+    const subs = db.getSubscriptions("user1");
+    expect([...subs.subjects].sort()).toEqual(["Issue", "PullRequest"]);
+    expect([...subs.reasons!]).toEqual(["mention"]);
+    // after customizing reasons, the unselected ones are no longer pre-checked
+    expect(reasonOptions(db, "user1").find((o) => o.value === "comment")!.default).toBe(false);
   });
 });
