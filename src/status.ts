@@ -66,3 +66,18 @@ export function formatAttention(githubLogin: string, list: AttentionList): strin
   );
   return clampMessage(`${header}\n\n${incoming}\n\n${mine}`);
 }
+
+export function formatDigest(githubLogin: string, list: AttentionList): string {
+  const header = `☀️ **Daily PR digest** for \`${githubLogin}\``;
+  const incoming = renderSection(
+    "🔍 Awaiting your review",
+    list.incoming,
+    "Nothing awaiting your review. 🎉"
+  );
+  const mine = renderSection(
+    "📝 Your PRs awaiting review",
+    list.mine,
+    "No open PRs of yours are waiting on a review."
+  );
+  return clampMessage(`${header}\n\n${incoming}\n\n${mine}`);
+}
