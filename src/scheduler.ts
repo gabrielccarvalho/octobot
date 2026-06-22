@@ -36,7 +36,7 @@ export function startDigestScheduler(
   deps: DigestDeps,
   clock: () => number = Date.now
 ): { stop(): void } {
-  const handle = setInterval(() => void maybeRunDigest(deps, clock()), 60_000);
-  void maybeRunDigest(deps, clock()); // check immediately on boot
+  const handle = setInterval(() => void maybeRunDigest(deps, clock()).catch(console.error), 60_000);
+  void maybeRunDigest(deps, clock()).catch(console.error); // check immediately on boot
   return { stop: () => clearInterval(handle) };
 }
