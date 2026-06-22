@@ -1,5 +1,6 @@
 import type { Database, User } from "../db";
 import { formatAttention, type AttentionList } from "../status";
+import { SUBJECT_TYPES, REASONS } from "../github/taxonomy";
 
 export interface CommandContext {
   userId: string;
@@ -15,6 +16,41 @@ export interface LinkDeps {
 
 export interface StatusDeps {
   listAttention(user: User): Promise<AttentionList>;
+}
+
+export interface SubscriptionOption {
+  label: string;
+  value: string;
+  default: boolean;
+}
+
+export const LISTEN_TO_SUBJECTS_ID = "listen-to:subjects";
+export const LISTEN_TO_REASONS_ID = "listen-to:reasons";
+
+export function subjectOptions(db: Database, userId: string): SubscriptionOption[] {
+  const { subjects } = db.getSubscriptions(userId);
+  return SUBJECT_TYPES.map((s) => ({
+    label: `${s.emoji} ${s.label}`,
+    value: s.key,
+    default: subjects.has(s.key),
+  }));
+}
+
+export function reasonOptions(db: Database, userId: string): SubscriptionOption[] {
+  const { reasons } = db.getSubscriptions(userId);
+  return REASONS.map((r) => ({
+    label: `${r.emoji} ${r.label}`,
+    value: r.key,
+    default: reasons === null || reasons.has(r.key),
+  }));
+}
+
+export function applySubjectSelection(db: Database, userId: string, values: string[]): void {
+  db.setSubscribedSubjects(userId, values);
+}
+
+export function applyReasonSelection(db: Database, userId: string, values: string[]): void {
+  db.setSubscribedReasons(userId, values);
 }
 
 export async function handleLink(ctx: CommandContext, db: Database, deps: LinkDeps): Promise<void> {

@@ -13,6 +13,10 @@ export const commands = [
     .setName("status")
     .setDescription("Show which GitHub account you're connected as")
     .toJSON(),
+  new SlashCommandBuilder()
+    .setName("listen-to")
+    .setDescription("Choose which GitHub notifications you receive")
+    .toJSON(),
 ];
 
 export async function registerCommands(token: string, clientId: string): Promise<void> {
