@@ -92,6 +92,13 @@ export async function startDiscord(
   const handleDigestButton = async (interaction: ButtonInteraction) => {
     const userId = interaction.user.id;
     if (interaction.customId === DIGEST_TOGGLE_ID) {
+      if (!db.getUser(userId)) {
+        await interaction.update({
+          content: "You're not connected. Run `/link` first.",
+          components: [],
+        });
+        return;
+      }
       const enabled = toggleDigest(db, userId);
       await interaction.update({
         content: digestStatusText(enabled),
