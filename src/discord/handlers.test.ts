@@ -8,6 +8,8 @@ import {
   reasonOptions,
   applySubjectSelection,
   applyReasonSelection,
+  toggleDigest,
+  digestStatusText,
   type CommandContext,
   type LinkDeps,
   type StatusDeps,
@@ -106,6 +108,21 @@ describe("/status", () => {
     };
     await handleStatus(ctx(), db, deps);
     expect(replies[0]).toMatch(/try again/i);
+  });
+});
+
+describe("/digest", () => {
+  it("toggles the digest flag and returns the new state", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    expect(db.getDigestEnabled("user1")).toBe(true);
+    expect(toggleDigest(db, "user1")).toBe(false);
+    expect(db.getDigestEnabled("user1")).toBe(false);
+    expect(toggleDigest(db, "user1")).toBe(true);
+  });
+
+  it("describes the current state", () => {
+    expect(digestStatusText(true)).toMatch(/on/i);
+    expect(digestStatusText(false)).toMatch(/off/i);
   });
 });
 

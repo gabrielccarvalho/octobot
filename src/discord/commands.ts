@@ -2,6 +2,10 @@ import { REST, Routes, SlashCommandBuilder } from "discord.js";
 
 export const commands = [
   new SlashCommandBuilder()
+    .setName("digest")
+    .setDescription("Turn the daily 6am PR digest on or off, or preview it")
+    .toJSON(),
+  new SlashCommandBuilder()
     .setName("link")
     .setDescription("Connect your GitHub account to receive PR notifications")
     .toJSON(),

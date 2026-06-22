@@ -53,6 +53,21 @@ export function applyReasonSelection(db: Database, userId: string, values: strin
   db.setSubscribedReasons(userId, values);
 }
 
+export const DIGEST_TOGGLE_ID = "digest:toggle";
+export const DIGEST_PREVIEW_ID = "digest:preview";
+
+export function toggleDigest(db: Database, userId: string): boolean {
+  const next = !db.getDigestEnabled(userId);
+  db.setDigestEnabled(userId, next);
+  return next;
+}
+
+export function digestStatusText(enabled: boolean): string {
+  return enabled
+    ? "☀️ Daily PR digest is **ON** — you'll get a summary at 6am BRT."
+    : "🌙 Daily PR digest is **OFF**.";
+}
+
 export async function handleLink(ctx: CommandContext, db: Database, deps: LinkDeps): Promise<void> {
   const state = deps.generateState();
   db.createState(state, ctx.userId);
