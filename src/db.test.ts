@@ -73,3 +73,44 @@ describe("oauth states", () => {
     expect(db.consumeState("nope", 60_000)).toBeNull();
   });
 });
+
+describe("subscriptions and meta", () => {
+  it("defaults to PullRequest subjects and pass-all reasons", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("d1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    const subs = db.getSubscriptions("d1");
+    expect([...subs.subjects]).toEqual(["PullRequest"]);
+    expect(subs.reasons).toBeNull();
+  });
+
+  it("round-trips subject and reason selections independently", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("d1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    db.setSubscribedSubjects("d1", ["PullRequest", "Issue"]);
+    expect([...db.getSubscriptions("d1").subjects].sort()).toEqual(["Issue", "PullRequest"]);
+    expect(db.getSubscriptions("d1").reasons).toBeNull(); // untouched
+
+    db.setSubscribedReasons("d1", ["mention"]);
+    const subs = db.getSubscriptions("d1");
+    expect([...subs.reasons!]).toEqual(["mention"]);
+    expect([...subs.subjects].sort()).toEqual(["Issue", "PullRequest"]); // untouched
+  });
+
+  it("defaults digest ON for linked users, false for unknown users", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("d1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    expect(db.getDigestEnabled("d1")).toBe(true);
+    expect(db.getDigestEnabled("ghost")).toBe(false);
+    db.setDigestEnabled("d1", false);
+    expect(db.getDigestEnabled("d1")).toBe(false);
+  });
+
+  it("stores and reads meta values", () => {
+    const db = createDatabase(":memory:");
+    expect(db.getMeta("last_digest_date")).toBeNull();
+    db.setMeta("last_digest_date", "2026-06-22");
+    expect(db.getMeta("last_digest_date")).toBe("2026-06-22");
+    db.setMeta("last_digest_date", "2026-06-23");
+    expect(db.getMeta("last_digest_date")).toBe("2026-06-23");
+  });
+});

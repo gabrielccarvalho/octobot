@@ -1,4 +1,5 @@
 import SQLite from "better-sqlite3";
+import { DEFAULT_SUBJECT_KEYS } from "./github/taxonomy";
 
 export interface User {
   discordId: string;
@@ -20,6 +21,13 @@ export interface Database {
   markNotified(discordId: string, threadId: string, updatedAt: string): void;
   createState(state: string, discordId: string): void;
   consumeState(state: string, maxAgeMs: number): string | null;
+  getSubscriptions(discordId: string): { subjects: Set<string>; reasons: Set<string> | null };
+  setSubscribedSubjects(discordId: string, subjects: string[]): void;
+  setSubscribedReasons(discordId: string, reasons: string[]): void;
+  getDigestEnabled(discordId: string): boolean;
+  setDigestEnabled(discordId: string, enabled: boolean): void;
+  getMeta(key: string): string | null;
+  setMeta(key: string, value: string): void;
   close(): void;
 }
 
@@ -47,6 +55,19 @@ export function createDatabase(path: string): Database {
       state      TEXT PRIMARY KEY,
       discord_id TEXT NOT NULL,
       created_at TEXT NOT NULL
+    );
+  `);
+
+  // Idempotent migration: subscription columns added after initial release.
+  const userCols = sql.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  const hasCol = (c: string) => userCols.some((x) => x.name === c);
+  if (!hasCol("subscribed_subjects")) sql.exec("ALTER TABLE users ADD COLUMN subscribed_subjects TEXT");
+  if (!hasCol("subscribed_reasons")) sql.exec("ALTER TABLE users ADD COLUMN subscribed_reasons TEXT");
+  if (!hasCol("digest_enabled")) sql.exec("ALTER TABLE users ADD COLUMN digest_enabled INTEGER");
+  sql.exec(`
+    CREATE TABLE IF NOT EXISTS meta (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     );
   `);
 
@@ -156,6 +177,58 @@ export function createDatabase(path: string): Database {
       sql.prepare("DELETE FROM oauth_states WHERE state = ?").run(state); // single use
       if (Date.now() - new Date(r.created_at).getTime() > maxAgeMs) return null;
       return r.discord_id;
+    },
+
+    getSubscriptions(discordId): { subjects: Set<string>; reasons: Set<string> | null } {
+      const r = sql
+        .prepare("SELECT subscribed_subjects, subscribed_reasons FROM users WHERE discord_id = ?")
+        .get(discordId) as
+        | { subscribed_subjects: string | null; subscribed_reasons: string | null }
+        | undefined;
+      const subjects = r?.subscribed_subjects
+        ? new Set(JSON.parse(r.subscribed_subjects) as string[])
+        : new Set(DEFAULT_SUBJECT_KEYS);
+      const reasons = r?.subscribed_reasons
+        ? new Set(JSON.parse(r.subscribed_reasons) as string[])
+        : null;
+      return { subjects, reasons };
+    },
+
+    setSubscribedSubjects(discordId, subjects): void {
+      sql
+        .prepare("UPDATE users SET subscribed_subjects = ? WHERE discord_id = ?")
+        .run(JSON.stringify(subjects), discordId);
+    },
+
+    setSubscribedReasons(discordId, reasons): void {
+      sql
+        .prepare("UPDATE users SET subscribed_reasons = ? WHERE discord_id = ?")
+        .run(JSON.stringify(reasons), discordId);
+    },
+
+    getDigestEnabled(discordId): boolean {
+      const r = sql
+        .prepare("SELECT digest_enabled FROM users WHERE discord_id = ?")
+        .get(discordId) as { digest_enabled: number | null } | undefined;
+      if (!r) return false; // unknown user
+      return r.digest_enabled !== 0; // NULL (never set) => ON
+    },
+
+    setDigestEnabled(discordId, enabled): void {
+      sql
+        .prepare("UPDATE users SET digest_enabled = ? WHERE discord_id = ?")
+        .run(enabled ? 1 : 0, discordId);
+    },
+
+    getMeta(key): string | null {
+      const r = sql.prepare("SELECT value FROM meta WHERE key = ?").get(key) as
+        | { value: string }
+        | undefined;
+      return r ? r.value : null;
+    },
+
+    setMeta(key, value): void {
+      sql.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)").run(key, value);
     },
 
     close(): void {
