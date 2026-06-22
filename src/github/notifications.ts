@@ -5,9 +5,10 @@ export interface NotificationItem {
   reason: string;
   updatedAt: string;
   repoFullName: string;
-  prNumber: number;
-  prTitle: string;
-  prUrl: string;
+  subjectType: string;
+  subjectNumber: number | null;
+  subjectTitle: string;
+  subjectUrl: string;
 }
 
 export interface FetchResult {
@@ -31,18 +32,35 @@ export function toHtmlUrl(apiUrl: string): string {
     .replace("/pulls/", "/pull/");
 }
 
+function resolveSubject(
+  type: string,
+  apiUrl: string,
+  repoFullName: string
+): { number: number | null; url: string } {
+  // PRs and Issues have a numeric id at the end of their API url and a clean html url.
+  if ((type === "PullRequest" || type === "Issue") && apiUrl) {
+    const n = Number(apiUrl.split("/").pop());
+    return { number: Number.isFinite(n) ? n : null, url: toHtmlUrl(apiUrl) };
+  }
+  // Releases, commits, discussions, CI, security: no reliable number; link to the repo.
+  return { number: null, url: `https://github.com/${repoFullName}` };
+}
+
 export function parseNotifications(raw: RawNotification[]): NotificationItem[] {
-  return raw
-    .filter((n) => n.subject?.type === "PullRequest")
-    .map((n) => ({
+  return raw.map((n) => {
+    const subjectType = n.subject?.type ?? "";
+    const { number, url } = resolveSubject(subjectType, n.subject?.url ?? "", n.repository.full_name);
+    return {
       threadId: n.id,
       reason: n.reason,
       updatedAt: n.updated_at,
       repoFullName: n.repository.full_name,
-      prNumber: Number(n.subject.url.split("/").pop()),
-      prTitle: n.subject.title,
-      prUrl: toHtmlUrl(n.subject.url),
-    }));
+      subjectType,
+      subjectNumber: number,
+      subjectTitle: n.subject?.title ?? "(no title)",
+      subjectUrl: url,
+    };
+  });
 }
 
 export async function fetchNotifications(

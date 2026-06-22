@@ -48,12 +48,14 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
   for (const item of res.items) {
     if (deps.db.wasNotified(user.discordId, item.threadId, item.updatedAt)) continue;
     let verdict = null;
-    try {
-      const review = await deps.fetchLatestReview(token, item.repoFullName, item.prNumber);
-      verdict = resolveVerdict(item, review);
-    } catch (err) {
-      // Enrichment is best-effort; never let it drop the notification.
-      console.warn(`Verdict lookup failed for ${user.discordId} thread ${item.threadId}:`, err);
+    if (item.subjectType === "PullRequest" && item.subjectNumber != null) {
+      try {
+        const review = await deps.fetchLatestReview(token, item.repoFullName, item.subjectNumber);
+        verdict = resolveVerdict(item, review);
+      } catch (err) {
+        // Enrichment is best-effort; never let it drop the notification.
+        console.warn(`Verdict lookup failed for ${user.discordId} thread ${item.threadId}:`, err);
+      }
     }
     try {
       await deps.sender.sendDm(user.discordId, formatNotification(item, verdict));

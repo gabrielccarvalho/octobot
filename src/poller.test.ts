@@ -16,9 +16,10 @@ const prItem = {
   reason: "review_requested",
   updatedAt: "2026-06-17T10:00:00Z",
   repoFullName: "acme/repo",
-  prNumber: 1,
-  prTitle: "Fix",
-  prUrl: "https://github.com/acme/repo/pull/1",
+  subjectType: "PullRequest",
+  subjectNumber: 1,
+  subjectTitle: "Fix",
+  subjectUrl: "https://github.com/acme/repo/pull/1",
 };
 
 function user(): User {
