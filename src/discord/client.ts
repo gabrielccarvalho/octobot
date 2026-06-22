@@ -85,7 +85,11 @@ export async function startDiscord(
 
   client.on("interactionCreate", async (interaction) => {
     if (interaction.isStringSelectMenu()) {
-      await handleListenToSelect(interaction);
+      try {
+        await handleListenToSelect(interaction);
+      } catch (err) {
+        console.error("Select menu handler error:", err);
+      }
       return;
     }
     if (!interaction.isChatInputCommand()) return;
