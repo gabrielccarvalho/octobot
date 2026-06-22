@@ -45,7 +45,11 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
 
   if (res.lastModified) deps.db.updateLastModified(user.discordId, res.lastModified);
 
+  const subs = deps.db.getSubscriptions(user.discordId);
+
   for (const item of res.items) {
+    if (!subs.subjects.has(item.subjectType)) continue;
+    if (subs.reasons !== null && !subs.reasons.has(item.reason)) continue;
     if (deps.db.wasNotified(user.discordId, item.threadId, item.updatedAt)) continue;
     let verdict = null;
     if (item.subjectType === "PullRequest" && item.subjectNumber != null) {

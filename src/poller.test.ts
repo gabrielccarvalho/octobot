@@ -119,3 +119,34 @@ it("falls back to the generic label when the review lookup throws", async () => 
   expect(sent).toHaveLength(1);
   expect(sent[0].message).toContain("Review requested"); // prItem.reason fallback, DM not dropped
 });
+
+const issueItem = {
+  threadId: "t9",
+  reason: "mention",
+  updatedAt: "2026-06-17T11:00:00Z",
+  repoFullName: "acme/repo",
+  subjectType: "Issue",
+  subjectNumber: 9,
+  subjectTitle: "Bug",
+  subjectUrl: "https://github.com/acme/repo/issues/9",
+};
+
+it("suppresses a non-PR subject by default", async () => {
+  nextResult = { status: 200, items: [issueItem], lastModified: "Mon", pollInterval: 60 };
+  await pollUser(deps(), user());
+  expect(sent).toHaveLength(0);
+});
+
+it("delivers a subject once the user subscribes to that type", async () => {
+  db.setSubscribedSubjects("d1", ["PullRequest", "Issue"]);
+  nextResult = { status: 200, items: [issueItem], lastModified: "Mon", pollInterval: 60 };
+  await pollUser(deps(), user());
+  expect(sent).toHaveLength(1);
+});
+
+it("suppresses a reason the user has filtered out", async () => {
+  db.setSubscribedReasons("d1", ["mention"]); // review_requested no longer allowed
+  nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60 };
+  await pollUser(deps(), user());
+  expect(sent).toHaveLength(0);
+});
