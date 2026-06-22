@@ -50,7 +50,7 @@ it("baselines current threads, sets the watermark, and sends one summary DM", as
     fetchResult: {
       status: 200,
       items: [
-        { threadId: "t1", reason: "review_requested", updatedAt: "U1", repoFullName: "acme/repo", prNumber: 1, prTitle: "x", prUrl: "u" },
+        { threadId: "t1", reason: "review_requested", updatedAt: "U1", repoFullName: "acme/repo", subjectType: "PullRequest", subjectNumber: 1, subjectTitle: "x", subjectUrl: "u" },
       ],
       lastModified: "Mon, 01 Jan 2026 00:00:00 GMT",
       pollInterval: 60,
