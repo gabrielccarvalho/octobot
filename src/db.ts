@@ -9,10 +9,11 @@ export interface User {
   tokenTag: string;
   lastModified: string | null;
   createdAt: string;
+  authSource: string;
 }
 
 export interface Database {
-  upsertUser(discordId: string, githubLogin: string, enc: { ciphertext: string; iv: string; tag: string }): void;
+  upsertUser(discordId: string, githubLogin: string, enc: { ciphertext: string; iv: string; tag: string }, authSource?: string): void;
   getUser(discordId: string): User | null;
   getAllUsers(): User[];
   deleteUser(discordId: string): boolean;
@@ -64,6 +65,7 @@ export function createDatabase(path: string): Database {
   if (!hasCol("subscribed_subjects")) sql.exec("ALTER TABLE users ADD COLUMN subscribed_subjects TEXT");
   if (!hasCol("subscribed_reasons")) sql.exec("ALTER TABLE users ADD COLUMN subscribed_reasons TEXT");
   if (!hasCol("digest_enabled")) sql.exec("ALTER TABLE users ADD COLUMN digest_enabled INTEGER");
+  if (!hasCol("auth_source")) sql.exec("ALTER TABLE users ADD COLUMN auth_source TEXT NOT NULL DEFAULT 'oauth'");
   sql.exec(`
     CREATE TABLE IF NOT EXISTS meta (
       key   TEXT PRIMARY KEY,
@@ -72,25 +74,26 @@ export function createDatabase(path: string): Database {
   `);
 
   return {
-    upsertUser(discordId, githubLogin, enc): void {
+    upsertUser(discordId, githubLogin, enc, authSource = "oauth"): void {
       sql
         .prepare(
-          `INSERT INTO users (discord_id, github_login, token_ciphertext, token_iv, token_tag, last_modified, created_at)
-           VALUES (?, ?, ?, ?, ?, NULL, ?)
+          `INSERT INTO users (discord_id, github_login, token_ciphertext, token_iv, token_tag, auth_source, last_modified, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, NULL, ?)
            ON CONFLICT(discord_id) DO UPDATE SET
              github_login = excluded.github_login,
              token_ciphertext = excluded.token_ciphertext,
              token_iv = excluded.token_iv,
              token_tag = excluded.token_tag,
+             auth_source = excluded.auth_source,
              last_modified = NULL`
         )
-        .run(discordId, githubLogin, enc.ciphertext, enc.iv, enc.tag, new Date().toISOString());
+        .run(discordId, githubLogin, enc.ciphertext, enc.iv, enc.tag, authSource, new Date().toISOString());
     },
 
     getUser(discordId): User | null {
       const r = sql
         .prepare(
-          "SELECT discord_id, github_login, token_ciphertext, token_iv, token_tag, last_modified, created_at FROM users WHERE discord_id = ?"
+          "SELECT discord_id, github_login, token_ciphertext, token_iv, token_tag, auth_source, last_modified, created_at FROM users WHERE discord_id = ?"
         )
         .get(discordId) as
         | {
@@ -99,6 +102,7 @@ export function createDatabase(path: string): Database {
             token_ciphertext: string;
             token_iv: string;
             token_tag: string;
+            auth_source: string;
             last_modified: string | null;
             created_at: string;
           }
@@ -110,6 +114,7 @@ export function createDatabase(path: string): Database {
             tokenCiphertext: r.token_ciphertext,
             tokenIv: r.token_iv,
             tokenTag: r.token_tag,
+            authSource: r.auth_source,
             lastModified: r.last_modified,
             createdAt: r.created_at,
           }
@@ -119,7 +124,7 @@ export function createDatabase(path: string): Database {
     getAllUsers(): User[] {
       const rows = sql
         .prepare(
-          "SELECT discord_id, github_login, token_ciphertext, token_iv, token_tag, last_modified, created_at FROM users"
+          "SELECT discord_id, github_login, token_ciphertext, token_iv, token_tag, auth_source, last_modified, created_at FROM users"
         )
         .all() as {
         discord_id: string;
@@ -127,6 +132,7 @@ export function createDatabase(path: string): Database {
         token_ciphertext: string;
         token_iv: string;
         token_tag: string;
+        auth_source: string;
         last_modified: string | null;
         created_at: string;
       }[];
@@ -136,6 +142,7 @@ export function createDatabase(path: string): Database {
         tokenCiphertext: r.token_ciphertext,
         tokenIv: r.token_iv,
         tokenTag: r.token_tag,
+        authSource: r.auth_source,
         lastModified: r.last_modified,
         createdAt: r.created_at,
       }));

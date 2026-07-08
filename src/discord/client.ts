@@ -6,9 +6,13 @@ import {
   StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   type ChatInputCommandInteraction,
   type StringSelectMenuInteraction,
   type ButtonInteraction,
+  type ModalSubmitInteraction,
 } from "discord.js";
 import type { Database } from "../db";
 import type { DmSender } from "../notifier";
@@ -27,10 +31,17 @@ import {
   LISTEN_TO_REASONS_ID,
   DIGEST_TOGGLE_ID,
   DIGEST_PREVIEW_ID,
+  handleTokenSubmit,
+  CONNECT_TOKEN_CREATE_URL,
+  CONNECT_TOKEN_MESSAGE,
+  CONNECT_TOKEN_PASTE_ID,
+  CONNECT_TOKEN_MODAL_ID,
+  CONNECT_TOKEN_INPUT_ID,
   type CommandContext,
   type LinkDeps,
   type StatusDeps,
   type SubscriptionOption,
+  type TokenDeps,
 } from "./handlers";
 
 function toContext(interaction: ChatInputCommandInteraction): CommandContext {
@@ -58,7 +69,8 @@ export async function startDiscord(
   db: Database,
   linkDeps: LinkDeps,
   statusDeps: StatusDeps,
-  digestDeps: DigestDeps
+  digestDeps: DigestDeps,
+  tokenDeps: TokenDeps
 ): Promise<DiscordRuntime> {
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -88,6 +100,42 @@ export async function startDiscord(
         .setLabel("Preview now")
         .setStyle(ButtonStyle.Secondary)
     );
+
+  const connectTokenComponents = () => [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setLabel("Create token on GitHub")
+        .setStyle(ButtonStyle.Link)
+        .setURL(CONNECT_TOKEN_CREATE_URL),
+      new ButtonBuilder()
+        .setCustomId(CONNECT_TOKEN_PASTE_ID)
+        .setLabel("Paste my token")
+        .setStyle(ButtonStyle.Primary)
+    ),
+  ];
+
+  const tokenModal = () =>
+    new ModalBuilder()
+      .setCustomId(CONNECT_TOKEN_MODAL_ID)
+      .setTitle("Connect with a GitHub token")
+      .addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+          new TextInputBuilder()
+            .setCustomId(CONNECT_TOKEN_INPUT_ID)
+            .setLabel("Paste your personal access token")
+            .setPlaceholder("ghp_…")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+        )
+      );
+
+  const handleTokenModal = async (interaction: ModalSubmitInteraction) => {
+    if (interaction.customId !== CONNECT_TOKEN_MODAL_ID) return;
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const raw = interaction.fields.getTextInputValue(CONNECT_TOKEN_INPUT_ID);
+    const message = await handleTokenSubmit(interaction.user.id, raw, db, tokenDeps);
+    await interaction.editReply({ content: message });
+  };
 
   const handleDigestButton = async (interaction: ButtonInteraction) => {
     const userId = interaction.user.id;
@@ -130,9 +178,21 @@ export async function startDiscord(
   };
 
   client.on("interactionCreate", async (interaction) => {
+    if (interaction.isModalSubmit()) {
+      try {
+        await handleTokenModal(interaction);
+      } catch (err) {
+        console.error("Modal submit handler error:", err);
+      }
+      return;
+    }
     if (interaction.isButton()) {
       try {
-        await handleDigestButton(interaction);
+        if (interaction.customId === CONNECT_TOKEN_PASTE_ID) {
+          await interaction.showModal(tokenModal());
+        } else {
+          await handleDigestButton(interaction);
+        }
       } catch (err) {
         console.error("Button handler error:", err);
       }
@@ -151,6 +211,12 @@ export async function startDiscord(
     try {
       if (interaction.commandName === "link") {
         await handleLink(ctx, db, linkDeps);
+      } else if (interaction.commandName === "connect-token") {
+        await interaction.reply({
+          content: CONNECT_TOKEN_MESSAGE,
+          components: connectTokenComponents(),
+          flags: MessageFlags.Ephemeral,
+        });
       } else if (interaction.commandName === "unlink") {
         await handleUnlink(ctx, db);
       } else if (interaction.commandName === "status") {

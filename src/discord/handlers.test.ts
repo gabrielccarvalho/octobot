@@ -10,6 +10,8 @@ import {
   applyReasonSelection,
   toggleDigest,
   digestStatusText,
+  handleTokenSubmit,
+  CONNECT_TOKEN_CREATE_URL,
   type CommandContext,
   type LinkDeps,
   type StatusDeps,
@@ -88,15 +90,28 @@ describe("/status", () => {
     expect(replies[0]).toContain("#7 [Fix bug](https://github.com/acme/repo/pull/7)");
   });
 
-  it("asks to reconnect on a 401 error", async () => {
-    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+  it("tells an oauth user to run /link on a 401 error", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "oauth");
     const deps: StatusDeps = {
       listAttention: async () => {
         throw Object.assign(new Error("401"), { status: 401 });
       },
     };
     await handleStatus(ctx(), db, deps);
-    expect(replies[0]).toMatch(/expired|reconnect|\/link/i);
+    expect(replies[0]).toMatch(/expired|reconnect/i);
+    expect(replies[0]).toContain("/link");
+  });
+
+  it("tells a pat user to run /connect-token on a 401 error", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "pat");
+    const deps: StatusDeps = {
+      listAttention: async () => {
+        throw Object.assign(new Error("401"), { status: 401 });
+      },
+    };
+    await handleStatus(ctx(), db, deps);
+    expect(replies[0]).toMatch(/expired|reconnect/i);
+    expect(replies[0]).toContain("/connect-token");
   });
 
   it("shows a generic error on other failures", async () => {
@@ -123,6 +138,71 @@ describe("/digest", () => {
   it("describes the current state", () => {
     expect(digestStatusText(true)).toMatch(/on/i);
     expect(digestStatusText(false)).toMatch(/off/i);
+  });
+});
+
+function tokenDb() {
+  const calls: any = { upsert: null };
+  const db = {
+    upsertUser: (discordId: string, login: string, enc: any, authSource?: string) => {
+      calls.upsert = { discordId, login, enc, authSource };
+    },
+  } as any;
+  return { db, calls };
+}
+
+const okDeps = (overrides: any = {}) => ({
+  validateToken: async () => ({ login: "octocat", scopes: ["repo", "notifications"] }),
+  encrypt: () => ({ ciphertext: "c", iv: "i", tag: "t" }),
+  onConnect: async () => {},
+  ...overrides,
+});
+
+describe("handleTokenSubmit", () => {
+  it("stores the token as pat and confirms on success", async () => {
+    const { db, calls } = tokenDb();
+    const out = await handleTokenSubmit("d1", "  ghp_valid  ", db, okDeps() as any);
+    expect(calls.upsert.authSource).toBe("pat");
+    expect(calls.upsert.login).toBe("octocat");
+    expect(out).toContain("octocat");
+  });
+
+  it("rejects an invalid token (401) without storing", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({ validateToken: async () => { throw Object.assign(new Error("x"), { status: 401 }); } });
+    const out = await handleTokenSubmit("d1", "bad", db, deps as any);
+    expect(calls.upsert).toBeNull();
+    expect(out.toLowerCase()).toContain("invalid");
+  });
+
+  it("rejects a token missing the repo scope, naming it", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({ validateToken: async () => ({ login: "octocat", scopes: ["notifications"] }) });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(calls.upsert).toBeNull();
+    expect(out).toContain("repo");
+  });
+
+  it("connects successfully with only the repo scope", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({ validateToken: async () => ({ login: "octocat", scopes: ["repo"] }) });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(calls.upsert.authSource).toBe("pat");
+    expect(calls.upsert.login).toBe("octocat");
+    expect(out).toContain("octocat");
+  });
+
+  it("still confirms success when onboarding throws", async () => {
+    const { db } = tokenDb();
+    const deps = okDeps({ onConnect: async () => { throw new Error("network"); } });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toContain("octocat");
+  });
+
+  it("exposes the exact pre-filled token URL", () => {
+    expect(CONNECT_TOKEN_CREATE_URL).toBe(
+      "https://github.com/settings/tokens/new?scopes=repo&description=discord-pr-bot"
+    );
   });
 });
 

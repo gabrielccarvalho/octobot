@@ -5,7 +5,7 @@ import { createDatabase } from "./db";
 import { encrypt, decrypt } from "./crypto";
 import { registerCommands } from "./discord/commands";
 import { startDiscord } from "./discord/client";
-import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin } from "./github/oauth";
+import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin, validateToken } from "./github/oauth";
 import { fetchNotifications } from "./github/notifications";
 import { fetchLatestReview } from "./github/reviews";
 import {
@@ -63,12 +63,19 @@ async function main() {
     minePrsQuery: QUERY_MY_PRS_AWAITING_REVIEW,
   };
 
+  const tokenDeps: import("./discord/handlers").TokenDeps = {
+    validateToken: (token) => validateToken(token),
+    encrypt: (token) => encrypt(token, config.tokenEncryptionKey),
+    onConnect: undefined as never, // set after onConnect is created below
+  };
+
   const { client, sender } = await startDiscord(
     config.discordToken,
     db,
     linkDeps,
     statusDeps,
-    digestDeps
+    digestDeps,
+    tokenDeps
   );
   digestDeps.sender = sender;
 
@@ -80,6 +87,7 @@ async function main() {
     awaitingQuery: QUERY_AWAITING_MY_REVIEW,
     minePrsQuery: QUERY_MY_PRS_AWAITING_REVIEW,
   });
+  tokenDeps.onConnect = onConnect;
 
   const app = Fastify({ logger: true });
   registerHttpRoutes(app, {

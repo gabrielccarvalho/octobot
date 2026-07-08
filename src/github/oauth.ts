@@ -47,3 +47,27 @@ export async function fetchViewerLogin(
   if (!data.login) throw new Error("GitHub user response missing login");
   return data.login;
 }
+
+export async function validateToken(
+  token: string,
+  fetchImpl: FetchLike = defaultFetch
+): Promise<{ login: string; scopes: string[] }> {
+  const res = await fetchImpl("https://api.github.com/user", {
+    headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
+  });
+  if (!res.ok) {
+    const err = new Error(`Token validation failed: ${res.status}`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+  const data = (await res.json()) as { login?: string };
+  if (!data.login) throw new Error("GitHub user response missing login");
+  const raw = res.headers.get("x-oauth-scopes");
+  const scopes = raw
+    ? raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+    : [];
+  return { login: data.login, scopes };
+}

@@ -71,6 +71,12 @@ export function formatAttention(githubLogin: string, list: AttentionList): strin
   return clampMessage(`${header}\n\n${renderBody(list)}`);
 }
 
+export function reconnectHint(authSource: string): string {
+  return authSource === "pat"
+    ? "Run `/connect-token` with a fresh token to reconnect."
+    : "Run `/link` to reconnect.";
+}
+
 export function formatDigest(githubLogin: string, list: AttentionList): string {
   const header = `☀️ **Daily PR digest** for \`${githubLogin}\``;
   return clampMessage(`${header}\n\n${renderBody(list)}`);
