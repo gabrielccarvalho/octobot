@@ -183,12 +183,13 @@ describe("handleTokenSubmit", () => {
     expect(out).toContain("repo");
   });
 
-  it("rejects a token missing the notifications scope, naming it", async () => {
+  it("connects successfully with only the repo scope", async () => {
     const { db, calls } = tokenDb();
     const deps = okDeps({ validateToken: async () => ({ login: "octocat", scopes: ["repo"] }) });
     const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
-    expect(calls.upsert).toBeNull();
-    expect(out).toContain("notifications");
+    expect(calls.upsert.authSource).toBe("pat");
+    expect(calls.upsert.login).toBe("octocat");
+    expect(out).toContain("octocat");
   });
 
   it("still confirms success when onboarding throws", async () => {
@@ -200,7 +201,7 @@ describe("handleTokenSubmit", () => {
 
   it("exposes the exact pre-filled token URL", () => {
     expect(CONNECT_TOKEN_CREATE_URL).toBe(
-      "https://github.com/settings/tokens/new?scopes=repo,notifications&description=discord-pr-bot"
+      "https://github.com/settings/tokens/new?scopes=repo&description=discord-pr-bot"
     );
   });
 });

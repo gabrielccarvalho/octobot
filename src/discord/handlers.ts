@@ -57,14 +57,14 @@ export const DIGEST_TOGGLE_ID = "digest:toggle";
 export const DIGEST_PREVIEW_ID = "digest:preview";
 
 export const CONNECT_TOKEN_CREATE_URL =
-  "https://github.com/settings/tokens/new?scopes=repo,notifications&description=discord-pr-bot";
+  "https://github.com/settings/tokens/new?scopes=repo&description=discord-pr-bot";
 export const CONNECT_TOKEN_PASTE_ID = "connect-token:paste";
 export const CONNECT_TOKEN_MODAL_ID = "connect-token:modal";
 export const CONNECT_TOKEN_INPUT_ID = "connect-token:input";
 
 export const CONNECT_TOKEN_MESSAGE =
   "🔑 **Connect with a Personal Access Token** (works even when your org restricts OAuth apps).\n\n" +
-  "1. Click **Create token on GitHub** below — the scopes (`repo`, `notifications`) are pre-selected.\n" +
+  "1. Click **Create token on GitHub** below — the `repo` scope is pre-selected.\n" +
   "2. Pick an expiration, click **Generate token**, and copy it.\n" +
   "3. Click **Paste my token** and paste it in. Your token is stored encrypted and never shown in this channel.";
 
@@ -74,7 +74,7 @@ export interface TokenDeps {
   onConnect(discordId: string, token: string, githubLogin: string): Promise<void>;
 }
 
-const REQUIRED_PAT_SCOPES = ["repo", "notifications"] as const;
+const REQUIRED_PAT_SCOPES = ["repo"] as const;
 
 export function toggleDigest(db: Database, userId: string): boolean {
   const next = !db.getDigestEnabled(userId);
@@ -151,7 +151,7 @@ export async function handleTokenSubmit(
   if (missing.length > 0) {
     return (
       `That token is missing the \`${missing.join("` and `")}\` scope` +
-      `${missing.length > 1 ? "s" : ""}. Regenerate it with \`repo\` and \`notifications\` checked, then run \`/connect-token\` again.`
+      `${missing.length > 1 ? "s" : ""}. Regenerate it with \`repo\` checked, then run \`/connect-token\` again.`
     );
   }
 

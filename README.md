@@ -142,7 +142,7 @@ access. Instead of the OAuth authorization flow, you can connect with a classic
 
 **When to use:** If `/link` is blocked by your organization's OAuth app restrictions.
 
-**Requirements:** The token must have both `repo` and `notifications` scopes.
+**Requirements:** The token must have the `repo` scope.
 
 **Flow:** Run `/connect-token` → click **Create token on GitHub** (opens GitHub with
 scopes pre-selected) → generate and copy the token → click **Paste my token** →
