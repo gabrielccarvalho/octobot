@@ -10,6 +10,8 @@ import {
   applyReasonSelection,
   toggleDigest,
   digestStatusText,
+  handleTokenSubmit,
+  CONNECT_TOKEN_CREATE_URL,
   type CommandContext,
   type LinkDeps,
   type StatusDeps,
@@ -136,6 +138,70 @@ describe("/digest", () => {
   it("describes the current state", () => {
     expect(digestStatusText(true)).toMatch(/on/i);
     expect(digestStatusText(false)).toMatch(/off/i);
+  });
+});
+
+function tokenDb() {
+  const calls: any = { upsert: null };
+  const db = {
+    upsertUser: (discordId: string, login: string, enc: any, authSource?: string) => {
+      calls.upsert = { discordId, login, enc, authSource };
+    },
+  } as any;
+  return { db, calls };
+}
+
+const okDeps = (overrides: any = {}) => ({
+  validateToken: async () => ({ login: "octocat", scopes: ["repo", "notifications"] }),
+  encrypt: () => ({ ciphertext: "c", iv: "i", tag: "t" }),
+  onConnect: async () => {},
+  ...overrides,
+});
+
+describe("handleTokenSubmit", () => {
+  it("stores the token as pat and confirms on success", async () => {
+    const { db, calls } = tokenDb();
+    const out = await handleTokenSubmit("d1", "  ghp_valid  ", db, okDeps() as any);
+    expect(calls.upsert.authSource).toBe("pat");
+    expect(calls.upsert.login).toBe("octocat");
+    expect(out).toContain("octocat");
+  });
+
+  it("rejects an invalid token (401) without storing", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({ validateToken: async () => { throw Object.assign(new Error("x"), { status: 401 }); } });
+    const out = await handleTokenSubmit("d1", "bad", db, deps as any);
+    expect(calls.upsert).toBeNull();
+    expect(out.toLowerCase()).toContain("invalid");
+  });
+
+  it("rejects a token missing the repo scope, naming it", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({ validateToken: async () => ({ login: "octocat", scopes: ["notifications"] }) });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(calls.upsert).toBeNull();
+    expect(out).toContain("repo");
+  });
+
+  it("rejects a token missing the notifications scope, naming it", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({ validateToken: async () => ({ login: "octocat", scopes: ["repo"] }) });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(calls.upsert).toBeNull();
+    expect(out).toContain("notifications");
+  });
+
+  it("still confirms success when onboarding throws", async () => {
+    const { db } = tokenDb();
+    const deps = okDeps({ onConnect: async () => { throw new Error("network"); } });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toContain("octocat");
+  });
+
+  it("exposes the exact pre-filled token URL", () => {
+    expect(CONNECT_TOKEN_CREATE_URL).toBe(
+      "https://github.com/settings/tokens/new?scopes=repo,notifications&description=discord-pr-bot"
+    );
   });
 });
 

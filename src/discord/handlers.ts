@@ -56,6 +56,26 @@ export function applyReasonSelection(db: Database, userId: string, values: strin
 export const DIGEST_TOGGLE_ID = "digest:toggle";
 export const DIGEST_PREVIEW_ID = "digest:preview";
 
+export const CONNECT_TOKEN_CREATE_URL =
+  "https://github.com/settings/tokens/new?scopes=repo,notifications&description=discord-pr-bot";
+export const CONNECT_TOKEN_PASTE_ID = "connect-token:paste";
+export const CONNECT_TOKEN_MODAL_ID = "connect-token:modal";
+export const CONNECT_TOKEN_INPUT_ID = "connect-token:input";
+
+export const CONNECT_TOKEN_MESSAGE =
+  "🔑 **Connect with a Personal Access Token** (works even when your org restricts OAuth apps).\n\n" +
+  "1. Click **Create token on GitHub** below — the scopes (`repo`, `notifications`) are pre-selected.\n" +
+  "2. Pick an expiration, click **Generate token**, and copy it.\n" +
+  "3. Click **Paste my token** and paste it in. Your token is stored encrypted and never shown in this channel.";
+
+export interface TokenDeps {
+  validateToken(token: string): Promise<{ login: string; scopes: string[] }>;
+  encrypt(token: string): { ciphertext: string; iv: string; tag: string };
+  onConnect(discordId: string, token: string, githubLogin: string): Promise<void>;
+}
+
+const REQUIRED_PAT_SCOPES = ["repo", "notifications"] as const;
+
 export function toggleDigest(db: Database, userId: string): boolean {
   const next = !db.getDigestEnabled(userId);
   db.setDigestEnabled(userId, next);
@@ -105,4 +125,41 @@ export async function handleStatus(
         : "Couldn't reach GitHub right now — try again in a moment.";
     await ctx.reply(`✅ Connected as \`${user.githubLogin}\`\n\n${note}`);
   }
+}
+
+export async function handleTokenSubmit(
+  userId: string,
+  rawToken: string,
+  db: Database,
+  deps: TokenDeps
+): Promise<string> {
+  const token = rawToken.trim();
+  if (!token) return "No token received. Run `/connect-token` and paste your token to try again.";
+
+  let result: { login: string; scopes: string[] };
+  try {
+    result = await deps.validateToken(token);
+  } catch (err) {
+    const status = (err as { status?: number }).status;
+    if (status === 401 || status === 403) {
+      return "That token is invalid or expired — create a new one and try again.";
+    }
+    return "Couldn't reach GitHub to verify that token — try again in a moment.";
+  }
+
+  const missing = REQUIRED_PAT_SCOPES.filter((s) => !result.scopes.includes(s));
+  if (missing.length > 0) {
+    return (
+      `That token is missing the \`${missing.join("` and `")}\` scope` +
+      `${missing.length > 1 ? "s" : ""}. Regenerate it with \`repo\` and \`notifications\` checked, then run \`/connect-token\` again.`
+    );
+  }
+
+  db.upsertUser(userId, result.login, deps.encrypt(token), "pat");
+  try {
+    await deps.onConnect(userId, token, result.login);
+  } catch (err) {
+    console.warn(`Onboarding after /connect-token failed for ${userId}:`, err);
+  }
+  return `✅ Connected as \`${result.login}\` via personal access token.`;
 }
