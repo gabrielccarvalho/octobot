@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin } from "./oauth";
+import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin, validateToken } from "./oauth";
 import type { FetchLike } from "./http";
 
 function fakeFetch(handler: (url: string, init?: any) => any): FetchLike {
@@ -9,6 +9,19 @@ function fakeFetch(handler: (url: string, init?: any) => any): FetchLike {
       status: r.status ?? 200,
       ok: (r.status ?? 200) < 400,
       headers: { get: () => null },
+      json: async () => r.body,
+      text: async () => JSON.stringify(r.body),
+    };
+  };
+}
+
+function fakeFetchWithHeaders(handler: (url: string, init?: any) => any): FetchLike {
+  return async (url, init) => {
+    const r = handler(url, init);
+    return {
+      status: r.status ?? 200,
+      ok: (r.status ?? 200) < 400,
+      headers: { get: (name: string) => (r.headers ? r.headers[name.toLowerCase()] ?? null : null) },
       json: async () => r.body,
       text: async () => JSON.stringify(r.body),
     };
@@ -48,5 +61,29 @@ describe("fetchViewerLogin", () => {
   it("throws on a non-ok response", async () => {
     const f = fakeFetch(() => ({ status: 401, body: {} }));
     await expect(fetchViewerLogin("tok", f)).rejects.toThrow();
+  });
+});
+
+describe("validateToken", () => {
+  it("returns login and parsed scopes on success", async () => {
+    const fetchImpl = fakeFetchWithHeaders(() => ({
+      status: 200,
+      body: { login: "octocat" },
+      headers: { "x-oauth-scopes": "repo, notifications, read:org" },
+    }));
+    const result = await validateToken("ghp_x", fetchImpl);
+    expect(result.login).toBe("octocat");
+    expect(result.scopes).toEqual(["repo", "notifications", "read:org"]);
+  });
+
+  it("returns an empty scopes array when the header is absent", async () => {
+    const fetchImpl = fakeFetchWithHeaders(() => ({ status: 200, body: { login: "octocat" } }));
+    const result = await validateToken("ghp_x", fetchImpl);
+    expect(result.scopes).toEqual([]);
+  });
+
+  it("throws with a status property on 401", async () => {
+    const fetchImpl = fakeFetchWithHeaders(() => ({ status: 401, body: {} }));
+    await expect(validateToken("bad", fetchImpl)).rejects.toMatchObject({ status: 401 });
   });
 });
