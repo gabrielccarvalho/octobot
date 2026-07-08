@@ -78,6 +78,7 @@ replies are **ephemeral** (only you see them).
 | Command | What it does |
 | --- | --- |
 | `/link` | Returns a personal GitHub authorization link — click it to connect. |
+| `/connect-token` | Connect with a Personal Access Token instead of OAuth (for users blocked by org restrictions). |
 | `/unlink` | Disconnects your account and stops all notifications. |
 | `/status` | Shows your connected login plus what needs your attention right now. |
 | `/listen-to` | Pick which notification **types** and **reasons** you receive (interactive menus, saved automatically). |
@@ -132,6 +133,22 @@ current state with two buttons:
 
 The digest reuses the exact `/status` content and is **only sent when something
 needs your attention** — never an empty message.
+
+### `/connect-token`
+
+An alternative to `/link` for users whose GitHub organization restricts OAuth app
+access. Instead of the OAuth authorization flow, you can connect with a classic
+**Personal Access Token** (PAT).
+
+**When to use:** If `/link` is blocked by your organization's OAuth app restrictions.
+
+**Requirements:** The token must have both `repo` and `notifications` scopes.
+
+**Flow:** Run `/connect-token` → click **Create token on GitHub** (opens GitHub with
+scopes pre-selected) → generate and copy the token → click **Paste my token** →
+paste into the modal.
+
+The token is stored **encrypted**, the same as OAuth tokens.
 
 ---
 
