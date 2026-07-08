@@ -88,15 +88,28 @@ describe("/status", () => {
     expect(replies[0]).toContain("#7 [Fix bug](https://github.com/acme/repo/pull/7)");
   });
 
-  it("asks to reconnect on a 401 error", async () => {
-    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+  it("tells an oauth user to run /link on a 401 error", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "oauth");
     const deps: StatusDeps = {
       listAttention: async () => {
         throw Object.assign(new Error("401"), { status: 401 });
       },
     };
     await handleStatus(ctx(), db, deps);
-    expect(replies[0]).toMatch(/expired|reconnect|\/link/i);
+    expect(replies[0]).toMatch(/expired|reconnect/i);
+    expect(replies[0]).toContain("/link");
+  });
+
+  it("tells a pat user to run /connect-token on a 401 error", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "pat");
+    const deps: StatusDeps = {
+      listAttention: async () => {
+        throw Object.assign(new Error("401"), { status: 401 });
+      },
+    };
+    await handleStatus(ctx(), db, deps);
+    expect(replies[0]).toMatch(/expired|reconnect/i);
+    expect(replies[0]).toContain("/connect-token");
   });
 
   it("shows a generic error on other failures", async () => {

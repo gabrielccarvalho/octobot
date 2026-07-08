@@ -1,5 +1,5 @@
 import type { Database, User } from "../db";
-import { formatAttention, type AttentionList } from "../status";
+import { formatAttention, reconnectHint, type AttentionList } from "../status";
 import { SUBJECT_TYPES, REASONS } from "../github/taxonomy";
 
 export interface CommandContext {
@@ -101,7 +101,7 @@ export async function handleStatus(
     const status = (err as { status?: number }).status;
     const note =
       status === 401
-        ? "Your GitHub connection expired — run `/link` to reconnect."
+        ? `Your GitHub connection expired. ${reconnectHint(user.authSource)}`
         : "Couldn't reach GitHub right now — try again in a moment.";
     await ctx.reply(`✅ Connected as \`${user.githubLogin}\`\n\n${note}`);
   }

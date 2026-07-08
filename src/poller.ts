@@ -2,6 +2,7 @@ import type { Database, User } from "./db";
 import type { FetchResult } from "./github/notifications";
 import { resolveVerdict, formatNotification, type DmSender } from "./notifier";
 import type { LatestReview } from "./github/reviews";
+import { reconnectHint } from "./status";
 
 export interface PollerDeps {
   db: Database;
@@ -29,7 +30,7 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
     try {
       await deps.sender.sendDm(
         user.discordId,
-        "⚠️ Your GitHub connection expired or was revoked. Run `/link` to reconnect."
+        `⚠️ Your GitHub connection expired or was revoked. ${reconnectHint(user.authSource)}`
       );
     } catch (err) {
       console.warn(`Failed to DM revocation notice to ${user.discordId}:`, err);
