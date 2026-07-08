@@ -21,6 +21,10 @@ export const commands = [
     .setName("listen-to")
     .setDescription("Choose which GitHub notifications you receive")
     .toJSON(),
+  new SlashCommandBuilder()
+    .setName("connect-token")
+    .setDescription("Connect with a GitHub token (for orgs that restrict OAuth apps)")
+    .toJSON(),
 ];
 
 export async function registerCommands(token: string, clientId: string): Promise<void> {
