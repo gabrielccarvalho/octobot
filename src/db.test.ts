@@ -74,6 +74,29 @@ describe("oauth states", () => {
   });
 });
 
+describe("auth_source", () => {
+  it("defaults to 'oauth' when upsertUser omits it", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("d1", "octocat", { ciphertext: "c", iv: "i", tag: "t" });
+    expect(db.getUser("d1")?.authSource).toBe("oauth");
+    db.close();
+  });
+
+  it("stores 'pat' when passed", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("d2", "octocat", { ciphertext: "c", iv: "i", tag: "t" }, "pat");
+    expect(db.getUser("d2")?.authSource).toBe("pat");
+    db.close();
+  });
+
+  it("exposes authSource through getAllUsers", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("d3", "octocat", { ciphertext: "c", iv: "i", tag: "t" }, "pat");
+    expect(db.getAllUsers().find((u) => u.discordId === "d3")?.authSource).toBe("pat");
+    db.close();
+  });
+});
+
 describe("subscriptions and meta", () => {
   it("defaults to PullRequest subjects and pass-all reasons", () => {
     const db = createDatabase(":memory:");
