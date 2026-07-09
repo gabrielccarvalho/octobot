@@ -136,4 +136,28 @@ describe("subscriptions and meta", () => {
     db.setMeta("last_digest_date", "2026-06-23");
     expect(db.getMeta("last_digest_date")).toBe("2026-06-23");
   });
+
+  it("deleteUser removes that user's sso_warned meta key, leaving no orphaned state", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("U1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    db.setMeta("sso_warned:U1", "111,222");
+    expect(db.deleteUser("U1")).toBe(true);
+    expect(db.getMeta("sso_warned:U1")).toBeNull();
+  });
+
+  it("deleteUser returns false for a non-existent user without touching other meta", () => {
+    const db = createDatabase(":memory:");
+    expect(db.deleteUser("ghost")).toBe(false);
+  });
+
+  it("deleting one user's sso_warned key does not remove another user's", () => {
+    const db = createDatabase(":memory:");
+    db.upsertUser("U1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
+    db.upsertUser("U2", "monalisa", { ciphertext: "d", iv: "e", tag: "f" });
+    db.setMeta("sso_warned:U1", "111,222");
+    db.setMeta("sso_warned:U2", "333,444");
+    expect(db.deleteUser("U1")).toBe(true);
+    expect(db.getMeta("sso_warned:U1")).toBeNull();
+    expect(db.getMeta("sso_warned:U2")).toBe("333,444");
+  });
 });

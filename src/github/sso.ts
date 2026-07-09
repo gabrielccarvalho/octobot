@@ -13,6 +13,19 @@ export function parseSsoPartialOrgs(header: string | null): string[] {
   return match[1].split(",").map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
+// Shared key/value construction for the poller's warn-once-per-org-set gate
+// (db.getMeta/setMeta key "sso_warned:<discordId>"). Both the poller and
+// onboarding (which seeds this key from its baseline fetch to avoid a
+// duplicate DM) must build the exact same key and value, or the gate won't
+// match and the dedupe silently breaks. Extracted here so they can't drift.
+export function ssoWarnedMetaKey(discordId: string): string {
+  return `sso_warned:${discordId}`;
+}
+
+export function ssoWarnedMetaValue(orgIds: string[]): string {
+  return [...orgIds].sort().join(","); // sorted only to stabilize the dedupe key
+}
+
 // /user/orgs is multi-org data, so (unlike /user) it can trip the SSO filter.
 // Used at /connect-token time to detect unauthorized SSO orgs immediately.
 export async function fetchSsoPartialOrgs(

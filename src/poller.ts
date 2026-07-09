@@ -3,6 +3,7 @@ import type { FetchResult } from "./github/notifications";
 import { resolveVerdict, formatNotification, type DmSender } from "./notifier";
 import type { LatestReview } from "./github/reviews";
 import { reconnectHint, TOKEN_SETTINGS_URL } from "./status";
+import { ssoWarnedMetaKey, ssoWarnedMetaValue } from "./github/sso";
 
 export interface PollerDeps {
   db: Database;
@@ -44,9 +45,9 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
     return;
   }
 
-  const ssoKey = `sso_warned:${user.discordId}`;
+  const ssoKey = ssoWarnedMetaKey(user.discordId);
   if (res.ssoPartialOrgIds.length > 0) {
-    const value = [...res.ssoPartialOrgIds].sort().join(","); // sorted only to stabilize the dedupe key
+    const value = ssoWarnedMetaValue(res.ssoPartialOrgIds);
     if (deps.db.getMeta(ssoKey) !== value) {
       try {
         const n = res.ssoPartialOrgIds.length;
