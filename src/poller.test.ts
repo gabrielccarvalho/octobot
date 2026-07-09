@@ -4,6 +4,7 @@ import { pollUser, type PollerDeps } from "./poller";
 import type { FetchResult } from "./github/notifications";
 import type { DmSender } from "./notifier";
 import type { LatestReview } from "./github/reviews";
+import { ssoWarnedMetaValue } from "./github/sso";
 
 let db: Database;
 let sent: { discordId: string; message: string }[];
@@ -197,6 +198,15 @@ describe("SSO partial-results warning", () => {
     nextResult = { status: 200, items: [], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: ["111"] };
     await pollUser(deps(), user());
     expect(sent).toHaveLength(2); // warned again after the reset
+  });
+
+  it("stays quiet on the first tick when onboarding already seeded the meta key for the same org set", async () => {
+    // Mirrors what createOnConnect does: seed the gate via the same shared
+    // helper the poller uses, before the poller ever sees this user.
+    db.setMeta(ssoKey, ssoWarnedMetaValue(["111", "222"]));
+    nextResult = { status: 200, items: [], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: ["222", "111"] };
+    await pollUser(deps(), user());
+    expect(sent).toHaveLength(0);
   });
 
   it("a throwing sendDm leaves the meta key unset and still processes notifications", async () => {

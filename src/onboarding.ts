@@ -3,6 +3,7 @@ import type { FetchResult } from "./github/notifications";
 import type { SearchResult } from "./github/search";
 import type { DmSender } from "./notifier";
 import { formatAttention } from "./status";
+import { ssoWarnedMetaKey, ssoWarnedMetaValue } from "./github/sso";
 
 export interface OnConnectDeps {
   db: Database;
@@ -30,6 +31,14 @@ export function createOnConnect(deps: OnConnectDeps) {
           deps.db.markNotified(discordId, item.threadId, item.updatedAt);
         }
         if (res.lastModified) watermark = res.lastModified;
+        // Seed the poller's warn-once gate from this same baseline fetch, using
+        // the exact key/value format poller.ts checks. The onboarding summary
+        // DM below already carries its own SSO warning; without this, the
+        // poller's first tick ~60s later would independently DM a near-
+        // duplicate warning derived from the same underlying SSO filtering.
+        if (res.ssoPartialOrgIds.length > 0) {
+          deps.db.setMeta(ssoWarnedMetaKey(discordId), ssoWarnedMetaValue(res.ssoPartialOrgIds));
+        }
       }
     } catch (err) {
       console.warn(`Onboarding baseline failed for ${discordId}:`, err);
