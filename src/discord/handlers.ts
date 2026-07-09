@@ -72,6 +72,18 @@ export interface TokenDeps {
   validateToken(token: string): Promise<{ login: string; scopes: string[] }>;
   encrypt(token: string): { ciphertext: string; iv: string; tag: string };
   onConnect(discordId: string, token: string, githubLogin: string): Promise<void>;
+  fetchSsoPartialOrgs(token: string): Promise<string[]>;
+}
+
+const TOKEN_SETTINGS_URL = "https://github.com/settings/tokens";
+
+function ssoConnectWarning(orgIds: string[]): string {
+  if (orgIds.length === 0) return "";
+  const n = orgIds.length;
+  return (
+    `\n\n⚠️ Your token isn't authorized for ${n} SAML SSO organization${n > 1 ? "s" : ""}, ` +
+    `so PRs there won't appear. Authorize it at <${TOKEN_SETTINGS_URL}> → **Configure SSO**.`
+  );
 }
 
 const REQUIRED_PAT_SCOPES = ["repo"] as const;
@@ -161,5 +173,13 @@ export async function handleTokenSubmit(
   } catch (err) {
     console.warn(`Onboarding after /connect-token failed for ${userId}:`, err);
   }
-  return `✅ Connected as \`${result.login}\` via personal access token.`;
+
+  let ssoPartialOrgIds: string[] = [];
+  try {
+    ssoPartialOrgIds = await deps.fetchSsoPartialOrgs(token);
+  } catch (err) {
+    console.warn(`SSO partial-results probe after /connect-token failed for ${userId}:`, err);
+  }
+
+  return `✅ Connected as \`${result.login}\` via personal access token.${ssoConnectWarning(ssoPartialOrgIds)}`;
 }

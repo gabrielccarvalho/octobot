@@ -7,6 +7,7 @@ import { registerCommands } from "./discord/commands";
 import { startDiscord } from "./discord/client";
 import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin, validateToken } from "./github/oauth";
 import { fetchNotifications } from "./github/notifications";
+import { fetchSsoPartialOrgs } from "./github/sso";
 import { fetchLatestReview } from "./github/reviews";
 import {
   searchPullRequests,
@@ -70,6 +71,7 @@ async function main() {
     validateToken: (token) => validateToken(token),
     encrypt: (token) => encrypt(token, config.tokenEncryptionKey),
     onConnect: undefined as never, // set after onConnect is created below
+    fetchSsoPartialOrgs: (token) => fetchSsoPartialOrgs(token),
   };
 
   const { client, sender } = await startDiscord(

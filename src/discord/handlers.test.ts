@@ -159,6 +159,7 @@ const okDeps = (overrides: any = {}) => ({
   validateToken: async () => ({ login: "octocat", scopes: ["repo", "notifications"] }),
   encrypt: () => ({ ciphertext: "c", iv: "i", tag: "t" }),
   onConnect: async () => {},
+  fetchSsoPartialOrgs: async () => [],
   ...overrides,
 });
 
@@ -207,6 +208,36 @@ describe("handleTokenSubmit", () => {
     expect(CONNECT_TOKEN_CREATE_URL).toBe(
       "https://github.com/settings/tokens/new?scopes=repo&description=discord-pr-bot"
     );
+  });
+
+  it("leaves the success message unchanged when the SSO probe returns no orgs", async () => {
+    const { db } = tokenDb();
+    const deps = okDeps({ fetchSsoPartialOrgs: async () => [] });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toBe("✅ Connected as `octocat` via personal access token.");
+  });
+
+  it("appends an SSO warning when the probe returns unauthorized org IDs", async () => {
+    const { db } = tokenDb();
+    const deps = okDeps({ fetchSsoPartialOrgs: async () => ["21955855", "20582480"] });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toContain("✅ Connected as `octocat` via personal access token.");
+    expect(out).toContain("2 SAML SSO organization");
+    expect(out).toContain("Configure SSO");
+    expect(out).not.toMatch(/21955855|20582480/);
+  });
+
+  it("still returns the plain success message and persists the user when the SSO probe throws", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({
+      fetchSsoPartialOrgs: async () => {
+        throw new Error("network boom");
+      },
+    });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toBe("✅ Connected as `octocat` via personal access token.");
+    expect(calls.upsert).not.toBeNull();
+    expect(calls.upsert.authSource).toBe("pat");
   });
 });
 
