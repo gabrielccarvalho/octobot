@@ -84,7 +84,11 @@ describe("/status", () => {
 
   it("renders the connected summary via the shared formatter", async () => {
     db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    await handleStatus(ctx(), db, statusDeps({ incoming: [pr(7, "Fix bug")], mine: [] }));
+    await handleStatus(
+      ctx(),
+      db,
+      statusDeps({ incoming: [pr(7, "Fix bug")], mine: [], ssoPartialOrgIds: [] })
+    );
     expect(replies[0]).toContain("✅ Connected as `octocat`");
     expect(replies[0]).toContain("**acme/repo**");
     expect(replies[0]).toContain("#7 [Fix bug](https://github.com/acme/repo/pull/7)");

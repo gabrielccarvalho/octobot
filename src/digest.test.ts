@@ -16,14 +16,17 @@ const pr = (n: number): PrSummary => ({
   updatedAt: "2026-06-17T10:00:00Z",
 });
 
-function deps(results: Record<string, PrSummary[]>): DigestDeps {
+function deps(
+  results: Record<string, PrSummary[]>,
+  ssoPartialOrgIds: Record<string, string[]> = {}
+): DigestDeps {
   return {
     db,
     sender,
     decryptToken: () => "tok",
     searchPullRequests: async (_token, query): Promise<SearchResult> => ({
       prs: results[query] ?? [],
-      ssoPartialOrgIds: [],
+      ssoPartialOrgIds: ssoPartialOrgIds[query] ?? [],
     }),
     awaitingQuery: "AWAITING",
     minePrsQuery: "MINE",
@@ -48,6 +51,31 @@ describe("buildDigest", () => {
   it("returns null when both sections are empty", async () => {
     const user = db.getUser("d1")!;
     expect(await buildDigest(deps({ AWAITING: [], MINE: [] }), user)).toBeNull();
+  });
+
+  it("returns null when both sections are empty even if SSO org IDs are present", async () => {
+    const user = db.getUser("d1")!;
+    const d = deps(
+      { AWAITING: [], MINE: [] },
+      { AWAITING: ["21955855"], MINE: ["21955855"] }
+    );
+    expect(await buildDigest(d, user)).toBeNull();
+  });
+
+  it("appends the SSO warning, unioning and deduping org IDs from both searches", async () => {
+    const user = db.getUser("d1")!;
+    const d = deps(
+      { AWAITING: [pr(7)], MINE: [] },
+      { AWAITING: ["21955855", "20582480"], MINE: ["20582480", "999"] }
+    );
+    const msg = await buildDigest(d, user);
+    expect(msg).toContain("your token isn't authorized for 3 SAML SSO organizations.");
+  });
+
+  it("renders byte-identically to today when ssoPartialOrgIds is empty", async () => {
+    const user = db.getUser("d1")!;
+    const msg = await buildDigest(deps({ AWAITING: [pr(7)], MINE: [] }), user);
+    expect(msg).not.toContain("⚠️");
   });
 });
 

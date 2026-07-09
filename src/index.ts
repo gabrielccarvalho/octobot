@@ -50,8 +50,10 @@ async function main() {
         searchPullRequests(token, QUERY_AWAITING_MY_REVIEW),
         searchPullRequests(token, QUERY_MY_PRS_AWAITING_REVIEW),
       ]);
-      // ssoPartialOrgIds is dropped here; Task 2 plumbs it into the rendered status.
-      return { incoming: incomingResult.prs, mine: mineResult.prs };
+      const ssoPartialOrgIds = [
+        ...new Set([...incomingResult.ssoPartialOrgIds, ...mineResult.ssoPartialOrgIds]),
+      ];
+      return { incoming: incomingResult.prs, mine: mineResult.prs, ssoPartialOrgIds };
     },
   };
 

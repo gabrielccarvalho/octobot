@@ -20,11 +20,13 @@ export async function buildDigest(deps: DigestDeps, user: User): Promise<string 
     deps.searchPullRequests(token, deps.awaitingQuery),
     deps.searchPullRequests(token, deps.minePrsQuery),
   ]);
-  // ssoPartialOrgIds is dropped here; Task 2 plumbs it into the rendered digest.
   const incoming = incomingResult.prs;
   const mine = mineResult.prs;
   if (incoming.length === 0 && mine.length === 0) return null;
-  return formatDigest(user.githubLogin, { incoming, mine });
+  const ssoPartialOrgIds = [
+    ...new Set([...incomingResult.ssoPartialOrgIds, ...mineResult.ssoPartialOrgIds]),
+  ];
+  return formatDigest(user.githubLogin, { incoming, mine, ssoPartialOrgIds });
 }
 
 export async function sendDigests(deps: DigestDeps): Promise<void> {

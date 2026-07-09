@@ -41,9 +41,14 @@ export function createOnConnect(deps: OnConnectDeps) {
       deps.searchPullRequests(token, deps.awaitingQuery),
       deps.searchPullRequests(token, deps.minePrsQuery),
     ]);
-    // ssoPartialOrgIds is dropped here; Task 2 plumbs it into the rendered summary.
     const incoming = incomingResult.prs;
     const mine = mineResult.prs;
-    await deps.sender.sendDm(discordId, formatAttention(githubLogin, { incoming, mine }));
+    const ssoPartialOrgIds = [
+      ...new Set([...incomingResult.ssoPartialOrgIds, ...mineResult.ssoPartialOrgIds]),
+    ];
+    await deps.sender.sendDm(
+      discordId,
+      formatAttention(githubLogin, { incoming, mine, ssoPartialOrgIds })
+    );
   };
 }
