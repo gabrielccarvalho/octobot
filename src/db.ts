@@ -1,5 +1,6 @@
 import SQLite from "better-sqlite3";
 import { DEFAULT_SUBJECT_KEYS } from "./github/taxonomy";
+import { ssoWarnedMetaKey } from "./github/sso";
 
 export interface User {
   discordId: string;
@@ -149,7 +150,12 @@ export function createDatabase(path: string): Database {
     },
 
     deleteUser(discordId): boolean {
-      return sql.prepare("DELETE FROM users WHERE discord_id = ?").run(discordId).changes > 0;
+      const removed = sql.prepare("DELETE FROM users WHERE discord_id = ?").run(discordId).changes > 0;
+      // The meta table has no FK/cascade to users, so per-user keys (e.g.
+      // sso_warned:<discordId>) would otherwise survive deletion and leak
+      // stale state into a future reconnect. Clean up unconditionally.
+      sql.prepare("DELETE FROM meta WHERE key = ?").run(ssoWarnedMetaKey(discordId));
+      return removed;
     },
 
     updateLastModified(discordId, lastModified): void {

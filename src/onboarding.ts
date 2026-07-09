@@ -1,14 +1,15 @@
 import type { Database } from "./db";
 import type { FetchResult } from "./github/notifications";
-import type { PrSummary } from "./github/search";
+import type { SearchResult } from "./github/search";
 import type { DmSender } from "./notifier";
 import { formatAttention } from "./status";
+import { ssoWarnedMetaKey, ssoWarnedMetaValue } from "./github/sso";
 
 export interface OnConnectDeps {
   db: Database;
   sender: DmSender;
   fetchNotifications(token: string, lastModified: string | null): Promise<FetchResult>;
-  searchPullRequests(token: string, query: string): Promise<PrSummary[]>;
+  searchPullRequests(token: string, query: string): Promise<SearchResult>;
   awaitingQuery: string;
   minePrsQuery: string;
 }
@@ -30,6 +31,14 @@ export function createOnConnect(deps: OnConnectDeps) {
           deps.db.markNotified(discordId, item.threadId, item.updatedAt);
         }
         if (res.lastModified) watermark = res.lastModified;
+        // Seed the poller's warn-once gate from this same baseline fetch, using
+        // the exact key/value format poller.ts checks. The onboarding summary
+        // DM below already carries its own SSO warning; without this, the
+        // poller's first tick ~60s later would independently DM a near-
+        // duplicate warning derived from the same underlying SSO filtering.
+        if (res.ssoPartialOrgIds.length > 0) {
+          deps.db.setMeta(ssoWarnedMetaKey(discordId), ssoWarnedMetaValue(res.ssoPartialOrgIds));
+        }
       }
     } catch (err) {
       console.warn(`Onboarding baseline failed for ${discordId}:`, err);
@@ -37,10 +46,18 @@ export function createOnConnect(deps: OnConnectDeps) {
     deps.db.updateLastModified(discordId, watermark);
 
     // 2. Summary: the same content as /status, as one DM.
-    const [incoming, mine] = await Promise.all([
+    const [incomingResult, mineResult] = await Promise.all([
       deps.searchPullRequests(token, deps.awaitingQuery),
       deps.searchPullRequests(token, deps.minePrsQuery),
     ]);
-    await deps.sender.sendDm(discordId, formatAttention(githubLogin, { incoming, mine }));
+    const incoming = incomingResult.prs;
+    const mine = mineResult.prs;
+    const ssoPartialOrgIds = [
+      ...new Set([...incomingResult.ssoPartialOrgIds, ...mineResult.ssoPartialOrgIds]),
+    ];
+    await deps.sender.sendDm(
+      discordId,
+      formatAttention(githubLogin, { incoming, mine, ssoPartialOrgIds })
+    );
   };
 }

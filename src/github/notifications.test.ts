@@ -91,4 +91,15 @@ describe("fetchNotifications", () => {
     expect(res.status).toBe(401);
     expect(res.items).toEqual([]);
   });
+
+  it("parses the SSO partial-results header on a 200", async () => {
+    const f = fakeFetch(200, [prRaw], { "x-github-sso": "partial-results; organizations=123,456" });
+    const res = await fetchNotifications("tok", null, f);
+    expect(res.ssoPartialOrgIds).toEqual(["123", "456"]);
+  });
+
+  it("has no SSO partial orgs when the header is absent", async () => {
+    const res = await fetchNotifications("tok", null, fakeFetch(200, [prRaw]));
+    expect(res.ssoPartialOrgIds).toEqual([]);
+  });
 });

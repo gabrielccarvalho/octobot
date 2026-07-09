@@ -3,11 +3,23 @@ import type { PrSummary } from "./github/search";
 export interface AttentionList {
   incoming: PrSummary[];
   mine: PrSummary[];
+  ssoPartialOrgIds: string[];
 }
 
 const MAX_PER_SECTION = 10;
 const MAX_TITLE = 59;
 const MAX_MESSAGE = 2000;
+export const TOKEN_SETTINGS_URL = "https://github.com/settings/tokens";
+
+function ssoWarning(orgIds: string[]): string {
+  if (orgIds.length === 0) return "";
+  const n = orgIds.length;
+  return (
+    `\n\n⚠️ Results are incomplete — your token isn't authorized for ${n} ` +
+    `SAML SSO organization${n > 1 ? "s" : ""}. ` +
+    `Authorize it at <${TOKEN_SETTINGS_URL}> → **Configure SSO**, then re-run.`
+  );
+}
 
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -63,7 +75,7 @@ function renderBody(list: AttentionList): string {
     list.mine,
     "No open PRs of yours are waiting on a review."
   );
-  return `${incoming}\n\n${mine}`;
+  return `${incoming}\n\n${mine}${ssoWarning(list.ssoPartialOrgIds)}`;
 }
 
 export function formatAttention(githubLogin: string, list: AttentionList): string {

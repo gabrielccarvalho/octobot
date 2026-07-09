@@ -2,7 +2,8 @@ import type { Database, User } from "./db";
 import type { FetchResult } from "./github/notifications";
 import { resolveVerdict, formatNotification, type DmSender } from "./notifier";
 import type { LatestReview } from "./github/reviews";
-import { reconnectHint } from "./status";
+import { reconnectHint, TOKEN_SETTINGS_URL } from "./status";
+import { ssoWarnedMetaKey, ssoWarnedMetaValue } from "./github/sso";
 
 export interface PollerDeps {
   db: Database;
@@ -42,6 +43,26 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
   if (res.status !== 200) {
     console.warn(`Notifications fetch for ${user.discordId} returned ${res.status}`);
     return;
+  }
+
+  const ssoKey = ssoWarnedMetaKey(user.discordId);
+  if (res.ssoPartialOrgIds.length > 0) {
+    const value = ssoWarnedMetaValue(res.ssoPartialOrgIds);
+    if (deps.db.getMeta(ssoKey) !== value) {
+      try {
+        const n = res.ssoPartialOrgIds.length;
+        await deps.sender.sendDm(
+          user.discordId,
+          `⚠️ Your token isn't authorized for ${n} SAML SSO organization${n > 1 ? "s" : ""}, ` +
+            `so notifications from there won't arrive. Authorize it at <${TOKEN_SETTINGS_URL}> → **Configure SSO**.`
+        );
+        deps.db.setMeta(ssoKey, value);
+      } catch (err) {
+        console.warn(`Failed to DM SSO warning to ${user.discordId}:`, err);
+      }
+    }
+  } else if (deps.db.getMeta(ssoKey)) {
+    deps.db.setMeta(ssoKey, "");
   }
 
   if (res.lastModified) deps.db.updateLastModified(user.discordId, res.lastModified);

@@ -16,7 +16,7 @@ function pr(n: number, title = "Title", repo = "acme/repo"): PrSummary {
 }
 
 function attention(over: Partial<AttentionList> = {}): AttentionList {
-  return { incoming: [], mine: [], ...over };
+  return { incoming: [], mine: [], ssoPartialOrgIds: [], ...over };
 }
 
 describe("formatAttention", () => {
@@ -68,6 +68,42 @@ describe("formatAttention", () => {
   });
 });
 
+describe("SSO partial-results warning", () => {
+  it("renders byte-identically to today when ssoPartialOrgIds is empty", () => {
+    const withEmpty = formatAttention("octocat", attention({ incoming: [pr(1)], ssoPartialOrgIds: [] }));
+    const withoutField = formatAttention(
+      "octocat",
+      // Asserts an empty ssoPartialOrgIds array renders with no warning appended,
+      // i.e. identically to the pre-SSO-warning output.
+      { incoming: [pr(1)], mine: [], ssoPartialOrgIds: [] } as AttentionList
+    );
+    expect(withEmpty).toBe(withoutField);
+    expect(withEmpty).not.toContain("⚠️");
+  });
+
+  it("appends a singular warning for one unauthorized org", () => {
+    const msg = formatAttention("octocat", attention({ ssoPartialOrgIds: ["21955855"] }));
+    expect(msg).toContain(
+      "⚠️ Results are incomplete — your token isn't authorized for 1 SAML SSO organization. " +
+        "Authorize it at <https://github.com/settings/tokens> → **Configure SSO**, then re-run."
+    );
+  });
+
+  it("appends a plural warning for multiple unauthorized orgs", () => {
+    const msg = formatAttention(
+      "octocat",
+      attention({ ssoPartialOrgIds: ["21955855", "20582480"] })
+    );
+    expect(msg).toContain("your token isn't authorized for 2 SAML SSO organizations.");
+  });
+
+  it("includes the warning in formatDigest too, still within the 2000-char clamp", () => {
+    const msg = formatDigest("octocat", attention({ ssoPartialOrgIds: ["1", "2"] }));
+    expect(msg).toContain("your token isn't authorized for 2 SAML SSO organizations.");
+    expect(msg.length).toBeLessThanOrEqual(2000);
+  });
+});
+
 describe("reconnectHint", () => {
   it("points oauth users at /link", () => {
     expect(reconnectHint("oauth")).toBe("Run `/link` to reconnect.");
@@ -85,6 +121,7 @@ describe("formatDigest", () => {
         { repoFullName: "acme/repo", number: 7, title: "Fix bug", url: "https://github.com/acme/repo/pull/7", updatedAt: "2026-06-17T10:00:00Z" },
       ],
       mine: [],
+      ssoPartialOrgIds: [],
     };
     const msg = formatDigest("octocat", list);
     expect(msg).toContain("Daily PR digest");

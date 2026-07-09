@@ -1,4 +1,4 @@
-import { it, expect, beforeEach, vi } from "vitest";
+import { it, expect, beforeEach, describe, vi } from "vitest";
 import { createDatabase, type Database } from "./db";
 import { createOnConnect } from "./onboarding";
 import type { FetchResult } from "./github/notifications";
@@ -22,17 +22,22 @@ function pr(n: number): PrSummary {
 function deps(over: {
   fetchResult?: FetchResult | (() => Promise<FetchResult>);
   search?: PrSummary[];
+  ssoPartialOrgIds?: Record<string, string[]>;
 } = {}) {
   const fetchResult =
     over.fetchResult ??
-    ({ status: 200, items: [], lastModified: "Mon, 01 Jan 2026 00:00:00 GMT", pollInterval: 60 } as FetchResult);
+    ({ status: 200, items: [], lastModified: "Mon, 01 Jan 2026 00:00:00 GMT", pollInterval: 60, ssoPartialOrgIds: [] } as FetchResult);
+  const sso = over.ssoPartialOrgIds ?? {};
   return {
     db,
     sender,
     fetchNotifications: vi.fn(async () =>
       typeof fetchResult === "function" ? await (fetchResult as () => Promise<FetchResult>)() : fetchResult
     ),
-    searchPullRequests: vi.fn(async () => over.search ?? []),
+    searchPullRequests: vi.fn(async (_token: string, query: string) => ({
+      prs: over.search ?? [],
+      ssoPartialOrgIds: sso[query] ?? [],
+    })),
     awaitingQuery: "AWAIT",
     minePrsQuery: "MINE",
   };
@@ -54,6 +59,7 @@ it("baselines current threads, sets the watermark, and sends one summary DM", as
       ],
       lastModified: "Mon, 01 Jan 2026 00:00:00 GMT",
       pollInterval: 60,
+      ssoPartialOrgIds: [],
     } as FetchResult,
     search: [pr(7)],
   });
@@ -74,4 +80,63 @@ it("still sets a watermark when the baseline fetch fails", async () => {
   await onConnect("d1", "tok", "octocat");
   expect(db.getUser("d1")?.lastModified).toBeTruthy();
   expect(sent).toHaveLength(1);
+});
+
+it("appends the SSO warning, unioning and deduping org IDs from both searches", async () => {
+  const d = deps({
+    search: [pr(7)],
+    ssoPartialOrgIds: { AWAIT: ["21955855", "20582480"], MINE: ["20582480", "999"] },
+  });
+  const onConnect = createOnConnect(d);
+  await onConnect("d1", "tok", "octocat");
+  expect(sent).toHaveLength(1);
+  expect(sent[0].message).toContain("your token isn't authorized for 3 SAML SSO organizations.");
+});
+
+it("renders byte-identically to today when ssoPartialOrgIds is empty", async () => {
+  const d = deps({ search: [pr(7)] });
+  const onConnect = createOnConnect(d);
+  await onConnect("d1", "tok", "octocat");
+  expect(sent[0].message).not.toContain("⚠️");
+});
+
+describe("seeding the poller's warn-once gate", () => {
+  it("seeds sso_warned from the baseline fetch's SSO org IDs, so the poller's first tick stays quiet", async () => {
+    const d = deps({
+      fetchResult: {
+        status: 200,
+        items: [],
+        lastModified: "Mon, 01 Jan 2026 00:00:00 GMT",
+        pollInterval: 60,
+        ssoPartialOrgIds: ["222", "111"],
+      } as FetchResult,
+      search: [pr(7)],
+    });
+    const onConnect = createOnConnect(d);
+    await onConnect("d1", "tok", "octocat");
+    expect(db.getMeta("sso_warned:d1")).toBe("111,222"); // sorted, matches poller's format
+  });
+
+  it("does not seed sso_warned when the baseline fetch reports no SSO org IDs", async () => {
+    const d = deps({
+      fetchResult: {
+        status: 200,
+        items: [],
+        lastModified: "Mon, 01 Jan 2026 00:00:00 GMT",
+        pollInterval: 60,
+        ssoPartialOrgIds: [],
+      } as FetchResult,
+      search: [pr(7)],
+    });
+    const onConnect = createOnConnect(d);
+    await onConnect("d1", "tok", "octocat");
+    expect(db.getMeta("sso_warned:d1")).toBeNull();
+  });
+
+  it("does not seed sso_warned when the baseline fetch fails (falls through to the now() watermark)", async () => {
+    const d = deps({ fetchResult: async () => { throw new Error("network"); } });
+    const onConnect = createOnConnect(d);
+    await onConnect("d1", "tok", "octocat");
+    expect(db.getMeta("sso_warned:d1")).toBeNull();
+  });
 });

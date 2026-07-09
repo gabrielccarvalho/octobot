@@ -1,4 +1,5 @@
 import { type FetchLike, defaultFetch } from "./http";
+import { parseSsoPartialOrgs } from "./sso";
 
 export interface NotificationItem {
   threadId: string;
@@ -16,6 +17,7 @@ export interface FetchResult {
   items: NotificationItem[];
   lastModified: string | null;
   pollInterval: number;    // seconds
+  ssoPartialOrgIds: string[];
 }
 
 interface RawNotification {
@@ -79,8 +81,9 @@ export async function fetchNotifications(
   const newLastModified = res.headers.get("last-modified");
 
   if (res.status !== 200) {
-    return { status: res.status, items: [], lastModified: newLastModified, pollInterval };
+    return { status: res.status, items: [], lastModified: newLastModified, pollInterval, ssoPartialOrgIds: [] };
   }
   const body = (await res.json()) as RawNotification[];
-  return { status: 200, items: parseNotifications(body), lastModified: newLastModified, pollInterval };
+  const ssoPartialOrgIds = parseSsoPartialOrgs(res.headers.get("x-github-sso"));
+  return { status: 200, items: parseNotifications(body), lastModified: newLastModified, pollInterval, ssoPartialOrgIds };
 }

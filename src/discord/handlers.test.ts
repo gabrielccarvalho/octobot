@@ -11,6 +11,7 @@ import {
   toggleDigest,
   digestStatusText,
   handleTokenSubmit,
+  connectTokenMessage,
   CONNECT_TOKEN_CREATE_URL,
   type CommandContext,
   type LinkDeps,
@@ -58,6 +59,47 @@ describe("/link", () => {
     expect(replies[0]).toContain("https://github.com/login/oauth/authorize?state=test-state");
     expect(db.consumeState("test-state", 60_000)).toBe("user1");
   });
+
+  it("warns when an existing user is connected via /connect-token (pat)", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "pat");
+    await handleLink(ctx(), db, linkDeps);
+    expect(replies[0]).toContain(
+      "⚠️ You're currently connected via `/connect-token`. Completing this link will replace that connection.\n\n"
+    );
+  });
+
+  it("does not warn when there is no existing connection", async () => {
+    await handleLink(ctx(), db, linkDeps);
+    expect(replies[0]).not.toContain("⚠️");
+  });
+
+  it("does not warn when the existing connection is already oauth", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "oauth");
+    await handleLink(ctx(), db, linkDeps);
+    expect(replies[0]).not.toContain("⚠️");
+  });
+});
+
+describe("connectTokenMessage", () => {
+  it("warns when an existing user is connected via /link (oauth)", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "oauth");
+    const msg = connectTokenMessage(db, "user1");
+    expect(msg).toContain(
+      "⚠️ You're currently connected via `/link`. Submitting a token will replace that connection.\n\n"
+    );
+  });
+
+  it("does not warn when there is no existing connection", () => {
+    const msg = connectTokenMessage(db, "user1");
+    expect(msg).not.toContain("⚠️");
+    expect(msg).toContain("Connect with a Personal Access Token");
+  });
+
+  it("does not warn when the existing connection is already pat", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "pat");
+    const msg = connectTokenMessage(db, "user1");
+    expect(msg).not.toContain("⚠️");
+  });
 });
 
 describe("/unlink", () => {
@@ -84,7 +126,11 @@ describe("/status", () => {
 
   it("renders the connected summary via the shared formatter", async () => {
     db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" });
-    await handleStatus(ctx(), db, statusDeps({ incoming: [pr(7, "Fix bug")], mine: [] }));
+    await handleStatus(
+      ctx(),
+      db,
+      statusDeps({ incoming: [pr(7, "Fix bug")], mine: [], ssoPartialOrgIds: [] })
+    );
     expect(replies[0]).toContain("✅ Connected as `octocat`");
     expect(replies[0]).toContain("**acme/repo**");
     expect(replies[0]).toContain("#7 [Fix bug](https://github.com/acme/repo/pull/7)");
@@ -155,6 +201,7 @@ const okDeps = (overrides: any = {}) => ({
   validateToken: async () => ({ login: "octocat", scopes: ["repo", "notifications"] }),
   encrypt: () => ({ ciphertext: "c", iv: "i", tag: "t" }),
   onConnect: async () => {},
+  fetchSsoPartialOrgs: async () => [],
   ...overrides,
 });
 
@@ -203,6 +250,36 @@ describe("handleTokenSubmit", () => {
     expect(CONNECT_TOKEN_CREATE_URL).toBe(
       "https://github.com/settings/tokens/new?scopes=repo&description=discord-pr-bot"
     );
+  });
+
+  it("leaves the success message unchanged when the SSO probe returns no orgs", async () => {
+    const { db } = tokenDb();
+    const deps = okDeps({ fetchSsoPartialOrgs: async () => [] });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toBe("✅ Connected as `octocat` via personal access token.");
+  });
+
+  it("appends an SSO warning when the probe returns unauthorized org IDs", async () => {
+    const { db } = tokenDb();
+    const deps = okDeps({ fetchSsoPartialOrgs: async () => ["21955855", "20582480"] });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toContain("✅ Connected as `octocat` via personal access token.");
+    expect(out).toContain("2 SAML SSO organization");
+    expect(out).toContain("Configure SSO");
+    expect(out).not.toMatch(/21955855|20582480/);
+  });
+
+  it("still returns the plain success message and persists the user when the SSO probe throws", async () => {
+    const { db, calls } = tokenDb();
+    const deps = okDeps({
+      fetchSsoPartialOrgs: async () => {
+        throw new Error("network boom");
+      },
+    });
+    const out = await handleTokenSubmit("d1", "ghp_x", db, deps as any);
+    expect(out).toBe("✅ Connected as `octocat` via personal access token.");
+    expect(calls.upsert).not.toBeNull();
+    expect(calls.upsert.authSource).toBe("pat");
   });
 });
 

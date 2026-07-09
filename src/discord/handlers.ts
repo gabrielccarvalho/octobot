@@ -1,5 +1,5 @@
 import type { Database, User } from "../db";
-import { formatAttention, reconnectHint, type AttentionList } from "../status";
+import { formatAttention, reconnectHint, TOKEN_SETTINGS_URL, type AttentionList } from "../status";
 import { SUBJECT_TYPES, REASONS } from "../github/taxonomy";
 
 export interface CommandContext {
@@ -62,16 +62,35 @@ export const CONNECT_TOKEN_PASTE_ID = "connect-token:paste";
 export const CONNECT_TOKEN_MODAL_ID = "connect-token:modal";
 export const CONNECT_TOKEN_INPUT_ID = "connect-token:input";
 
-export const CONNECT_TOKEN_MESSAGE =
+const CONNECT_TOKEN_BASE_MESSAGE =
   "🔑 **Connect with a Personal Access Token** (works even when your org restricts OAuth apps).\n\n" +
   "1. Click **Create token on GitHub** below — the `repo` scope is pre-selected.\n" +
   "2. Pick an expiration, click **Generate token**, and copy it.\n" +
   "3. Click **Paste my token** and paste it in. Your token is stored encrypted and never shown in this channel.";
 
+export function connectTokenMessage(db: Database, userId: string): string {
+  const existing = db.getUser(userId);
+  const prefix =
+    existing?.authSource === "oauth"
+      ? "⚠️ You're currently connected via `/link`. Submitting a token will replace that connection.\n\n"
+      : "";
+  return `${prefix}${CONNECT_TOKEN_BASE_MESSAGE}`;
+}
+
 export interface TokenDeps {
   validateToken(token: string): Promise<{ login: string; scopes: string[] }>;
   encrypt(token: string): { ciphertext: string; iv: string; tag: string };
   onConnect(discordId: string, token: string, githubLogin: string): Promise<void>;
+  fetchSsoPartialOrgs(token: string): Promise<string[]>;
+}
+
+function ssoConnectWarning(orgIds: string[]): string {
+  if (orgIds.length === 0) return "";
+  const n = orgIds.length;
+  return (
+    `\n\n⚠️ Your token isn't authorized for ${n} SAML SSO organization${n > 1 ? "s" : ""}, ` +
+    `so PRs there won't appear. Authorize it at <${TOKEN_SETTINGS_URL}> → **Configure SSO**.`
+  );
 }
 
 const REQUIRED_PAT_SCOPES = ["repo"] as const;
@@ -91,8 +110,13 @@ export function digestStatusText(enabled: boolean): string {
 export async function handleLink(ctx: CommandContext, db: Database, deps: LinkDeps): Promise<void> {
   const state = deps.generateState();
   db.createState(state, ctx.userId);
+  const existing = db.getUser(ctx.userId);
+  const prefix =
+    existing?.authSource === "pat"
+      ? "⚠️ You're currently connected via `/connect-token`. Completing this link will replace that connection.\n\n"
+      : "";
   await ctx.reply(
-    `🔗 Connect your GitHub account to receive PR notifications:\n${deps.authorizeUrl(state)}\n\nThis link is personal — don't share it. It expires shortly.`
+    `${prefix}🔗 Connect your GitHub account to receive PR notifications:\n${deps.authorizeUrl(state)}\n\nThis link is personal — don't share it. It expires shortly.`
   );
 }
 
@@ -161,5 +185,13 @@ export async function handleTokenSubmit(
   } catch (err) {
     console.warn(`Onboarding after /connect-token failed for ${userId}:`, err);
   }
-  return `✅ Connected as \`${result.login}\` via personal access token.`;
+
+  let ssoPartialOrgIds: string[] = [];
+  try {
+    ssoPartialOrgIds = await deps.fetchSsoPartialOrgs(token);
+  } catch (err) {
+    console.warn(`SSO partial-results probe after /connect-token failed for ${userId}:`, err);
+  }
+
+  return `✅ Connected as \`${result.login}\` via personal access token.${ssoConnectWarning(ssoPartialOrgIds)}`;
 }
