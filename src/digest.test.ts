@@ -53,12 +53,20 @@ describe("buildDigest", () => {
     expect(await buildDigest(deps({ AWAITING: [], MINE: [] }), user)).toBeNull();
   });
 
-  it("returns null when both sections are empty even if SSO org IDs are present", async () => {
+  it("returns a warning-only digest when both sections are empty but SSO org IDs are present", async () => {
     const user = db.getUser("d1")!;
     const d = deps(
       { AWAITING: [], MINE: [] },
       { AWAITING: ["21955855"], MINE: ["21955855"] }
     );
+    const msg = await buildDigest(d, user);
+    expect(msg).not.toBeNull();
+    expect(msg).toContain("your token isn't authorized for 1 SAML SSO organization.");
+  });
+
+  it("returns null when both sections and SSO org IDs are all empty", async () => {
+    const user = db.getUser("d1")!;
+    const d = deps({ AWAITING: [], MINE: [] }, { AWAITING: [], MINE: [] });
     expect(await buildDigest(d, user)).toBeNull();
   });
 

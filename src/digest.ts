@@ -13,7 +13,9 @@ export interface DigestDeps {
 }
 
 // Stateless current-state snapshot of the PRs needing this user's attention.
-// Returns null when there is nothing to report, so we never DM an empty digest.
+// Returns null when there is truly nothing to report. If PRs were filtered out
+// by an SSO-restricted org, we still DM a warning-only digest so a user whose
+// PRs live entirely inside that org isn't left silently digest-less.
 export async function buildDigest(deps: DigestDeps, user: User): Promise<string | null> {
   const token = deps.decryptToken(user);
   const [incomingResult, mineResult] = await Promise.all([
@@ -22,10 +24,10 @@ export async function buildDigest(deps: DigestDeps, user: User): Promise<string 
   ]);
   const incoming = incomingResult.prs;
   const mine = mineResult.prs;
-  if (incoming.length === 0 && mine.length === 0) return null;
   const ssoPartialOrgIds = [
     ...new Set([...incomingResult.ssoPartialOrgIds, ...mineResult.ssoPartialOrgIds]),
   ];
+  if (incoming.length === 0 && mine.length === 0 && ssoPartialOrgIds.length === 0) return null;
   return formatDigest(user.githubLogin, { incoming, mine, ssoPartialOrgIds });
 }
 
