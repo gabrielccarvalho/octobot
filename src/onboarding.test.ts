@@ -26,7 +26,7 @@ function deps(over: {
 } = {}) {
   const fetchResult =
     over.fetchResult ??
-    ({ status: 200, items: [], lastModified: "Mon, 01 Jan 2026 00:00:00 GMT", pollInterval: 60 } as FetchResult);
+    ({ status: 200, items: [], lastModified: "Mon, 01 Jan 2026 00:00:00 GMT", pollInterval: 60, ssoPartialOrgIds: [] } as FetchResult);
   const sso = over.ssoPartialOrgIds ?? {};
   return {
     db,
@@ -59,6 +59,7 @@ it("baselines current threads, sets the watermark, and sends one summary DM", as
       ],
       lastModified: "Mon, 01 Jan 2026 00:00:00 GMT",
       pollInterval: 60,
+      ssoPartialOrgIds: [],
     } as FetchResult,
     search: [pr(7)],
   });
