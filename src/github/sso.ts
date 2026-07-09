@@ -7,7 +7,7 @@ import { defaultFetch } from "./http";
 export function parseSsoPartialOrgs(header: string | null): string[] {
   if (!header) return [];
   const [directive, rest] = header.split(";", 2);
-  if (directive.trim() !== "partial-results" || !rest) return [];
+  if (directive.trim().toLowerCase() !== "partial-results" || !rest) return [];
   const match = /organizations=([\d,]+)/.exec(rest);
   if (!match) return [];
   return match[1].split(",").map((s) => s.trim()).filter((s) => s.length > 0);

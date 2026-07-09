@@ -34,6 +34,33 @@ describe("parseSsoPartialOrgs", () => {
       "20582480",
     ]);
   });
+
+  it("is case-insensitive on the directive", () => {
+    expect(parseSsoPartialOrgs("Partial-Results; organizations=21955855")).toEqual(["21955855"]);
+    expect(parseSsoPartialOrgs("PARTIAL-RESULTS; organizations=21955855")).toEqual(["21955855"]);
+  });
+
+  it("tolerates leading/trailing whitespace around the directive", () => {
+    expect(parseSsoPartialOrgs("  partial-results  ; organizations=21955855")).toEqual([
+      "21955855",
+    ]);
+  });
+
+  it("returns [] when organizations= is missing", () => {
+    expect(parseSsoPartialOrgs("partial-results; foo=bar")).toEqual([]);
+  });
+
+  it("returns [] for an empty org list", () => {
+    expect(parseSsoPartialOrgs("partial-results; organizations=")).toEqual([]);
+  });
+
+  it("ignores a trailing comma in the org list", () => {
+    expect(parseSsoPartialOrgs("partial-results; organizations=1,2,")).toEqual(["1", "2"]);
+  });
+
+  it("still returns [] for the required (403) form regardless of case", () => {
+    expect(parseSsoPartialOrgs("Required; url=https://github.com/orgs/acme/sso")).toEqual([]);
+  });
 });
 
 describe("fetchSsoPartialOrgs", () => {

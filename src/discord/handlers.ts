@@ -1,5 +1,5 @@
 import type { Database, User } from "../db";
-import { formatAttention, reconnectHint, type AttentionList } from "../status";
+import { formatAttention, reconnectHint, TOKEN_SETTINGS_URL, type AttentionList } from "../status";
 import { SUBJECT_TYPES, REASONS } from "../github/taxonomy";
 
 export interface CommandContext {
@@ -83,8 +83,6 @@ export interface TokenDeps {
   onConnect(discordId: string, token: string, githubLogin: string): Promise<void>;
   fetchSsoPartialOrgs(token: string): Promise<string[]>;
 }
-
-const TOKEN_SETTINGS_URL = "https://github.com/settings/tokens";
 
 function ssoConnectWarning(orgIds: string[]): string {
   if (orgIds.length === 0) return "";

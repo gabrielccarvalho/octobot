@@ -2,9 +2,7 @@ import type { Database, User } from "./db";
 import type { FetchResult } from "./github/notifications";
 import { resolveVerdict, formatNotification, type DmSender } from "./notifier";
 import type { LatestReview } from "./github/reviews";
-import { reconnectHint } from "./status";
-
-const TOKEN_SETTINGS_URL = "https://github.com/settings/tokens";
+import { reconnectHint, TOKEN_SETTINGS_URL } from "./status";
 
 export interface PollerDeps {
   db: Database;

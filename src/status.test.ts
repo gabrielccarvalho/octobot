@@ -73,7 +73,8 @@ describe("SSO partial-results warning", () => {
     const withEmpty = formatAttention("octocat", attention({ incoming: [pr(1)], ssoPartialOrgIds: [] }));
     const withoutField = formatAttention(
       "octocat",
-      // Simulate "today": no ssoPartialOrgIds field at all reaching renderBody.
+      // Asserts an empty ssoPartialOrgIds array renders with no warning appended,
+      // i.e. identically to the pre-SSO-warning output.
       { incoming: [pr(1)], mine: [], ssoPartialOrgIds: [] } as AttentionList
     );
     expect(withEmpty).toBe(withoutField);

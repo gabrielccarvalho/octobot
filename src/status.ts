@@ -9,7 +9,7 @@ export interface AttentionList {
 const MAX_PER_SECTION = 10;
 const MAX_TITLE = 59;
 const MAX_MESSAGE = 2000;
-const TOKEN_SETTINGS_URL = "https://github.com/settings/tokens";
+export const TOKEN_SETTINGS_URL = "https://github.com/settings/tokens";
 
 function ssoWarning(orgIds: string[]): string {
   if (orgIds.length === 0) return "";
