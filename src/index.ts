@@ -46,11 +46,12 @@ async function main() {
   const statusDeps = {
     listAttention: async (user: import("./db").User) => {
       const token = decryptToken(user);
-      const [incoming, mine] = await Promise.all([
+      const [incomingResult, mineResult] = await Promise.all([
         searchPullRequests(token, QUERY_AWAITING_MY_REVIEW),
         searchPullRequests(token, QUERY_MY_PRS_AWAITING_REVIEW),
       ]);
-      return { incoming, mine };
+      // ssoPartialOrgIds is dropped here; Task 2 plumbs it into the rendered status.
+      return { incoming: incomingResult.prs, mine: mineResult.prs };
     },
   };
 

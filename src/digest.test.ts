@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createDatabase, type Database, type User } from "./db";
 import { buildDigest, sendDigests, type DigestDeps } from "./digest";
 import type { DmSender } from "./notifier";
-import type { PrSummary } from "./github/search";
+import type { PrSummary, SearchResult } from "./github/search";
 
 let db: Database;
 let sent: { discordId: string; message: string }[];
@@ -21,7 +21,10 @@ function deps(results: Record<string, PrSummary[]>): DigestDeps {
     db,
     sender,
     decryptToken: () => "tok",
-    searchPullRequests: async (_token, query) => results[query] ?? [],
+    searchPullRequests: async (_token, query): Promise<SearchResult> => ({
+      prs: results[query] ?? [],
+      ssoPartialOrgIds: [],
+    }),
     awaitingQuery: "AWAITING",
     minePrsQuery: "MINE",
   };

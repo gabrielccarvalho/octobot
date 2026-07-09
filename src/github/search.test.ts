@@ -6,11 +6,11 @@ import {
 } from "./search";
 import type { FetchLike } from "./http";
 
-function fakeFetch(status: number, body: unknown): FetchLike {
+function fakeFetch(status: number, body: unknown, headers: Record<string, string> = {}): FetchLike {
   return async () => ({
     status,
     ok: status < 400,
-    headers: { get: () => null },
+    headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
     json: async () => body,
     text: async () => JSON.stringify(body),
   });
@@ -39,7 +39,7 @@ describe("searchPullRequests", () => {
       ],
     };
     const res = await searchPullRequests("tok", "q", fakeFetch(200, body));
-    expect(res).toEqual([
+    expect(res.prs).toEqual([
       {
         repoFullName: "acme/repo",
         number: 42,
@@ -50,13 +50,27 @@ describe("searchPullRequests", () => {
     ]);
   });
 
-  it("returns [] when there are no items", async () => {
-    expect(await searchPullRequests("tok", "q", fakeFetch(200, { items: [] }))).toEqual([]);
+  it("returns prs: [] when there are no items", async () => {
+    expect((await searchPullRequests("tok", "q", fakeFetch(200, { items: [] }))).prs).toEqual([]);
   });
 
   it("throws an error carrying the status on non-2xx", async () => {
     await expect(searchPullRequests("tok", "q", fakeFetch(401, {}))).rejects.toMatchObject({
       status: 401,
     });
+  });
+
+  it("surfaces ssoPartialOrgIds when the X-GitHub-SSO header is present", async () => {
+    const res = await searchPullRequests(
+      "tok",
+      "q",
+      fakeFetch(200, { items: [] }, { "x-github-sso": "partial-results; organizations=21955855,20582480" })
+    );
+    expect(res.ssoPartialOrgIds).toEqual(["21955855", "20582480"]);
+  });
+
+  it("returns ssoPartialOrgIds: [] when the header is absent", async () => {
+    const res = await searchPullRequests("tok", "q", fakeFetch(200, { items: [] }));
+    expect(res.ssoPartialOrgIds).toEqual([]);
   });
 });

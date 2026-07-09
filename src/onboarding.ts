@@ -1,6 +1,6 @@
 import type { Database } from "./db";
 import type { FetchResult } from "./github/notifications";
-import type { PrSummary } from "./github/search";
+import type { SearchResult } from "./github/search";
 import type { DmSender } from "./notifier";
 import { formatAttention } from "./status";
 
@@ -8,7 +8,7 @@ export interface OnConnectDeps {
   db: Database;
   sender: DmSender;
   fetchNotifications(token: string, lastModified: string | null): Promise<FetchResult>;
-  searchPullRequests(token: string, query: string): Promise<PrSummary[]>;
+  searchPullRequests(token: string, query: string): Promise<SearchResult>;
   awaitingQuery: string;
   minePrsQuery: string;
 }
@@ -37,10 +37,13 @@ export function createOnConnect(deps: OnConnectDeps) {
     deps.db.updateLastModified(discordId, watermark);
 
     // 2. Summary: the same content as /status, as one DM.
-    const [incoming, mine] = await Promise.all([
+    const [incomingResult, mineResult] = await Promise.all([
       deps.searchPullRequests(token, deps.awaitingQuery),
       deps.searchPullRequests(token, deps.minePrsQuery),
     ]);
+    // ssoPartialOrgIds is dropped here; Task 2 plumbs it into the rendered summary.
+    const incoming = incomingResult.prs;
+    const mine = mineResult.prs;
     await deps.sender.sendDm(discordId, formatAttention(githubLogin, { incoming, mine }));
   };
 }

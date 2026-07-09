@@ -32,7 +32,7 @@ function deps(over: {
     fetchNotifications: vi.fn(async () =>
       typeof fetchResult === "function" ? await (fetchResult as () => Promise<FetchResult>)() : fetchResult
     ),
-    searchPullRequests: vi.fn(async () => over.search ?? []),
+    searchPullRequests: vi.fn(async () => ({ prs: over.search ?? [], ssoPartialOrgIds: [] })),
     awaitingQuery: "AWAIT",
     minePrsQuery: "MINE",
   };

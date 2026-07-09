@@ -1,4 +1,5 @@
 import { type FetchLike, defaultFetch } from "./http";
+import { parseSsoPartialOrgs } from "./sso";
 
 export interface PrSummary {
   repoFullName: string;
@@ -6,6 +7,11 @@ export interface PrSummary {
   title: string;
   url: string;
   updatedAt: string;
+}
+
+export interface SearchResult {
+  prs: PrSummary[];
+  ssoPartialOrgIds: string[];
 }
 
 export const QUERY_AWAITING_MY_REVIEW = "is:open is:pr review-requested:@me";
@@ -24,7 +30,7 @@ export async function searchPullRequests(
   token: string,
   query: string,
   fetchImpl: FetchLike = defaultFetch
-): Promise<PrSummary[]> {
+): Promise<SearchResult> {
   const url =
     "https://api.github.com/search/issues?q=" +
     encodeURIComponent(query) +
@@ -36,11 +42,12 @@ export async function searchPullRequests(
     throw Object.assign(new Error(`GitHub search failed: ${res.status}`), { status: res.status });
   }
   const body = (await res.json()) as { items?: RawSearchItem[] };
-  return (body.items ?? []).map((it) => ({
+  const prs = (body.items ?? []).map((it) => ({
     repoFullName: it.repository_url.replace("https://api.github.com/repos/", ""),
     number: it.number,
     title: it.title,
     url: it.html_url,
     updatedAt: it.updated_at,
   }));
+  return { prs, ssoPartialOrgIds: parseSsoPartialOrgs(res.headers.get("x-github-sso")) };
 }
