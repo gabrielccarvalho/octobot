@@ -11,6 +11,7 @@ import {
   toggleDigest,
   digestStatusText,
   handleTokenSubmit,
+  connectTokenMessage,
   CONNECT_TOKEN_CREATE_URL,
   type CommandContext,
   type LinkDeps,
@@ -57,6 +58,47 @@ describe("/link", () => {
     await handleLink(ctx(), db, linkDeps);
     expect(replies[0]).toContain("https://github.com/login/oauth/authorize?state=test-state");
     expect(db.consumeState("test-state", 60_000)).toBe("user1");
+  });
+
+  it("warns when an existing user is connected via /connect-token (pat)", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "pat");
+    await handleLink(ctx(), db, linkDeps);
+    expect(replies[0]).toContain(
+      "⚠️ You're currently connected via `/connect-token`. Completing this link will replace that connection.\n\n"
+    );
+  });
+
+  it("does not warn when there is no existing connection", async () => {
+    await handleLink(ctx(), db, linkDeps);
+    expect(replies[0]).not.toContain("⚠️");
+  });
+
+  it("does not warn when the existing connection is already oauth", async () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "oauth");
+    await handleLink(ctx(), db, linkDeps);
+    expect(replies[0]).not.toContain("⚠️");
+  });
+});
+
+describe("connectTokenMessage", () => {
+  it("warns when an existing user is connected via /link (oauth)", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "oauth");
+    const msg = connectTokenMessage(db, "user1");
+    expect(msg).toContain(
+      "⚠️ You're currently connected via `/link`. Submitting a token will replace that connection.\n\n"
+    );
+  });
+
+  it("does not warn when there is no existing connection", () => {
+    const msg = connectTokenMessage(db, "user1");
+    expect(msg).not.toContain("⚠️");
+    expect(msg).toContain("Connect with a Personal Access Token");
+  });
+
+  it("does not warn when the existing connection is already pat", () => {
+    db.upsertUser("user1", "octocat", { ciphertext: "a", iv: "b", tag: "c" }, "pat");
+    const msg = connectTokenMessage(db, "user1");
+    expect(msg).not.toContain("⚠️");
   });
 });
 

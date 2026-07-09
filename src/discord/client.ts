@@ -32,8 +32,8 @@ import {
   DIGEST_TOGGLE_ID,
   DIGEST_PREVIEW_ID,
   handleTokenSubmit,
+  connectTokenMessage,
   CONNECT_TOKEN_CREATE_URL,
-  CONNECT_TOKEN_MESSAGE,
   CONNECT_TOKEN_PASTE_ID,
   CONNECT_TOKEN_MODAL_ID,
   CONNECT_TOKEN_INPUT_ID,
@@ -213,7 +213,7 @@ export async function startDiscord(
         await handleLink(ctx, db, linkDeps);
       } else if (interaction.commandName === "connect-token") {
         await interaction.reply({
-          content: CONNECT_TOKEN_MESSAGE,
+          content: connectTokenMessage(db, interaction.user.id),
           components: connectTokenComponents(),
           flags: MessageFlags.Ephemeral,
         });
