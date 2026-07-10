@@ -11,7 +11,7 @@ export interface OnConnectDeps {
   fetchNotifications(token: string, lastModified: string | null): Promise<FetchResult>;
   searchPullRequests(token: string, query: string): Promise<SearchResult>;
   awaitingQuery: string;
-  minePrsQuery: string;
+  fetchMinePrs(token: string): Promise<SearchResult>;
 }
 
 // Runs once when a user connects: baseline their notifications (so the poller
@@ -48,7 +48,7 @@ export function createOnConnect(deps: OnConnectDeps) {
     // 2. Summary: the same content as /status, as one DM.
     const [incomingResult, mineResult] = await Promise.all([
       deps.searchPullRequests(token, deps.awaitingQuery),
-      deps.searchPullRequests(token, deps.minePrsQuery),
+      deps.fetchMinePrs(token),
     ]);
     const incoming = incomingResult.prs;
     const mine = mineResult.prs;

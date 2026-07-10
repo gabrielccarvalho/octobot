@@ -39,7 +39,10 @@ function deps(over: {
       ssoPartialOrgIds: sso[query] ?? [],
     })),
     awaitingQuery: "AWAIT",
-    minePrsQuery: "MINE",
+    fetchMinePrs: vi.fn(async () => ({
+      prs: over.search ?? [],
+      ssoPartialOrgIds: sso["MINE"] ?? [],
+    })),
   };
 }
 
@@ -71,7 +74,8 @@ it("baselines current threads, sets the watermark, and sends one summary DM", as
   expect(sent).toHaveLength(1);
   expect(sent[0].discordId).toBe("d1");
   expect(sent[0].message).toContain("✅ Connected as `octocat`");
-  expect(d.searchPullRequests).toHaveBeenCalledTimes(2);
+  expect(d.searchPullRequests).toHaveBeenCalledTimes(1);
+  expect(d.fetchMinePrs).toHaveBeenCalledTimes(1);
 });
 
 it("still sets a watermark when the baseline fetch fails", async () => {

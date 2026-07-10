@@ -24,7 +24,7 @@ function deps(): DigestDeps {
     decryptToken: () => "tok",
     searchPullRequests: async () => ({ prs: [pr(7)], ssoPartialOrgIds: [] }),
     awaitingQuery: "AWAITING",
-    minePrsQuery: "MINE",
+    fetchMinePrs: async () => ({ prs: [pr(7)], ssoPartialOrgIds: [] }),
   };
 }
 

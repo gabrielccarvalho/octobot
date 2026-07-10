@@ -29,7 +29,10 @@ function deps(
       ssoPartialOrgIds: ssoPartialOrgIds[query] ?? [],
     }),
     awaitingQuery: "AWAITING",
-    minePrsQuery: "MINE",
+    fetchMinePrs: async (): Promise<SearchResult> => ({
+      prs: results["MINE"] ?? [],
+      ssoPartialOrgIds: ssoPartialOrgIds["MINE"] ?? [],
+    }),
   };
 }
 

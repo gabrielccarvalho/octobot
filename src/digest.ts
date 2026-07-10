@@ -9,7 +9,7 @@ export interface DigestDeps {
   decryptToken(user: User): string;
   searchPullRequests(token: string, query: string): Promise<SearchResult>;
   awaitingQuery: string;
-  minePrsQuery: string;
+  fetchMinePrs(token: string): Promise<SearchResult>;
 }
 
 // Stateless current-state snapshot of the PRs needing this user's attention.
@@ -20,7 +20,7 @@ export async function buildDigest(deps: DigestDeps, user: User): Promise<string 
   const token = deps.decryptToken(user);
   const [incomingResult, mineResult] = await Promise.all([
     deps.searchPullRequests(token, deps.awaitingQuery),
-    deps.searchPullRequests(token, deps.minePrsQuery),
+    deps.fetchMinePrs(token),
   ]);
   const incoming = incomingResult.prs;
   const mine = mineResult.prs;
