@@ -104,6 +104,37 @@ describe("SSO partial-results warning", () => {
   });
 });
 
+describe("mine PR reviewer labels", () => {
+  it("appends the requested reviewer for a single-reviewer mine PR", () => {
+    const msg = formatAttention(
+      "octocat",
+      attention({ mine: [{ ...pr(1), requestedReviewers: ["@majovanilla"] }] })
+    );
+    expect(msg).toContain(
+      `#1 [Title](https://github.com/acme/repo/pull/1) · <t:${UNIX}:R> · awaiting @majovanilla`
+    );
+  });
+
+  it("joins multiple requested reviewers with a comma", () => {
+    const msg = formatAttention(
+      "octocat",
+      attention({ mine: [{ ...pr(1), requestedReviewers: ["@a", "@b"] }] })
+    );
+    expect(msg).toContain(`· awaiting @a, @b`);
+  });
+
+  it("labels a mine PR with no requested reviewer", () => {
+    const msg = formatAttention("octocat", attention({ mine: [{ ...pr(1), requestedReviewers: [] }] }));
+    expect(msg).toContain("· awaiting review (no reviewer assigned)");
+  });
+
+  it("renders an incoming PR (requestedReviewers undefined) with no reviewer suffix", () => {
+    const msg = formatAttention("octocat", attention({ incoming: [pr(1)] }));
+    const prLine = msg.split("\n").find((l) => l.startsWith("#1 "));
+    expect(prLine).toBe(`#1 [Title](https://github.com/acme/repo/pull/1) · <t:${UNIX}:R>`);
+  });
+});
+
 describe("reconnectHint", () => {
   it("points oauth users at /link", () => {
     expect(reconnectHint("oauth")).toBe("Run `/link` to reconnect.");

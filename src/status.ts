@@ -50,12 +50,21 @@ function groupByRepo(prs: PrSummary[]): { repo: string; prs: PrSummary[] }[] {
   return groups;
 }
 
+function reviewerSuffix(requestedReviewers: string[] | undefined): string {
+  if (requestedReviewers === undefined) return "";
+  return requestedReviewers.length > 0
+    ? ` · awaiting ${requestedReviewers.join(", ")}`
+    : " · awaiting review (no reviewer assigned)";
+}
+
 function renderSection(label: string, prs: PrSummary[], emptyLine: string): string {
   if (prs.length === 0) return `${label}\n${emptyLine}`;
   const blocks = groupByRepo(prs.slice(0, MAX_PER_SECTION)).map((group) => {
     const lines = group.prs
       .map(
-        (p) => `#${p.number} [${truncate(p.title, MAX_TITLE)}](${p.url}) · ${relativeTime(p.updatedAt)}`
+        (p) =>
+          `#${p.number} [${truncate(p.title, MAX_TITLE)}](${p.url}) · ${relativeTime(p.updatedAt)}` +
+          reviewerSuffix(p.requestedReviewers)
       )
       .join("\n");
     return `**${group.repo}**\n${lines}`;
