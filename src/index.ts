@@ -12,7 +12,7 @@ import { fetchLatestReview } from "./github/reviews";
 import {
   searchPullRequests,
   QUERY_AWAITING_MY_REVIEW,
-  QUERY_MY_PRS_AWAITING_REVIEW,
+  QUERY_MY_OPEN_PRS,
 } from "./github/search";
 import { registerHttpRoutes } from "./http/routes";
 import { createOnConnect } from "./onboarding";
@@ -49,7 +49,7 @@ async function main() {
       const token = decryptToken(user);
       const [incomingResult, mineResult] = await Promise.all([
         searchPullRequests(token, QUERY_AWAITING_MY_REVIEW),
-        searchPullRequests(token, QUERY_MY_PRS_AWAITING_REVIEW),
+        searchPullRequests(token, QUERY_MY_OPEN_PRS),
       ]);
       const ssoPartialOrgIds = [
         ...new Set([...incomingResult.ssoPartialOrgIds, ...mineResult.ssoPartialOrgIds]),
@@ -64,7 +64,7 @@ async function main() {
     decryptToken,
     searchPullRequests: (token, query) => searchPullRequests(token, query),
     awaitingQuery: QUERY_AWAITING_MY_REVIEW,
-    minePrsQuery: QUERY_MY_PRS_AWAITING_REVIEW,
+    minePrsQuery: QUERY_MY_OPEN_PRS,
   };
 
   const tokenDeps: import("./discord/handlers").TokenDeps = {
@@ -90,7 +90,7 @@ async function main() {
     fetchNotifications: (token, lastModified) => fetchNotifications(token, lastModified),
     searchPullRequests: (token, query) => searchPullRequests(token, query),
     awaitingQuery: QUERY_AWAITING_MY_REVIEW,
-    minePrsQuery: QUERY_MY_PRS_AWAITING_REVIEW,
+    minePrsQuery: QUERY_MY_OPEN_PRS,
   });
   tokenDeps.onConnect = onConnect;
 
