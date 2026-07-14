@@ -12,7 +12,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      intro={`These terms are a binding agreement between you and ${COMPANY_NAME} ("we", "us"), the operator of OctoBot. By adding OctoBot to a Discord server or connecting your GitHub account, you agree to them.`}
+      intro={`These terms are a binding agreement between you and ${COMPANY_NAME} ("we", "us"), the operator of this service. By adding OctoBot to a Discord server or connecting your GitHub account, you agree to them.`}
     >
       <h2>1. The service</h2>
       <p>
@@ -23,8 +23,8 @@ export default function TermsPage() {
         once-a-day summary of pull requests awaiting your review.
       </p>
       <p>
-        OctoBot is provided by {COMPANY_NAME}. We may add, change, or remove
-        features at any time.
+        OctoBot is provided by us on an ongoing basis. We may add, change, or
+        remove features at any time.
       </p>
 
       <h2>2. Eligibility and accounts</h2>

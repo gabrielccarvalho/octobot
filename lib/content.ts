@@ -9,9 +9,8 @@
 /** Discord install / OAuth authorization URL for the OctoBot application. */
 export const DISCORD_INVITE_URL =
   "https://discord.com/oauth2/authorize?client_id=1526667638455926794"
-export const GITHUB_REPO_URL = "https://github.com"
 export const CONTACT_EMAIL = "gabrielccarvalhopro@gmail.com"
-export const COMPANY_NAME = "[Company legal name]"
+export const COMPANY_NAME = "OctoBot"
 export const GOVERNING_LAW = "[jurisdiction]"
 export const LAST_UPDATED = "July 14, 2026"
 

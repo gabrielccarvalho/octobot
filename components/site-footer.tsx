@@ -1,13 +1,7 @@
 import Link from "next/link"
 
 import { Logo } from "@/components/logo"
-import { Icon } from "@/components/icon"
-import {
-  NAV_LINKS,
-  GITHUB_REPO_URL,
-  COMPANY_NAME,
-  LAST_UPDATED,
-} from "@/lib/content"
+import { NAV_LINKS, COMPANY_NAME, LAST_UPDATED } from "@/lib/content"
 
 export function SiteFooter() {
   return (
@@ -20,15 +14,6 @@ export function SiteFooter() {
               GitHub activity, delivered to your Discord DMs the moment it needs
               you. Across every repo you can reach.
             </p>
-            <a
-              href={GITHUB_REPO_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-5 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Icon name="Github01Icon" className="size-4" strokeWidth={2} />
-              Source on GitHub
-            </a>
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
