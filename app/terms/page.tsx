@@ -1,7 +1,14 @@
 import type { Metadata } from "next"
 
 import { LegalPage } from "@/components/legal/legal-page"
-import { COMPANY_NAME, CONTACT_EMAIL, GOVERNING_LAW } from "@/lib/content"
+import {
+  COMPANY_NAME,
+  COMPANY_LEGAL_NAME,
+  COMPANY_CNPJ,
+  CONTACT_EMAIL,
+  GOVERNING_LAW,
+  JURISDICTION_FORUM,
+} from "@/lib/content"
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -12,7 +19,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      intro={`These terms are a binding agreement between you and ${COMPANY_NAME} ("we", "us"), the operator of this service. By adding OctoBot to a Discord server or connecting your GitHub account, you agree to them.`}
+      intro={`These terms are a binding agreement between you and ${COMPANY_NAME}, operated by ${COMPANY_LEGAL_NAME} (CNPJ ${COMPANY_CNPJ}) ("we", "us"). By adding OctoBot to a Discord server or connecting your GitHub account, you agree to them.`}
     >
       <h2>1. The service</h2>
       <p>
@@ -126,11 +133,12 @@ export default function TermsPage() {
         after changes take effect constitutes acceptance of the revised terms.
       </p>
 
-      <h2>11. Governing law</h2>
+      <h2>11. Governing law and venue</h2>
       <p>
         These terms are governed by the laws of {GOVERNING_LAW}, without regard
-        to its conflict-of-laws rules. The courts located in {GOVERNING_LAW}{" "}
-        will have exclusive jurisdiction over any dispute arising from them.
+        to its conflict-of-laws rules. The parties elect {JURISDICTION_FORUM} as
+        the exclusive venue for any dispute arising from them, waiving any other,
+        however privileged.
       </p>
 
       <h2>12. Contact</h2>

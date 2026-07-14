@@ -18,7 +18,7 @@ const fontMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://octobot.app"),
+  metadataBase: new URL("https://octobot.dev"),
   title: {
     default: "OctoBot — GitHub, in your DMs",
     template: "%s · OctoBot",

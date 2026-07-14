@@ -10,8 +10,16 @@
 export const DISCORD_INVITE_URL =
   "https://discord.com/oauth2/authorize?client_id=1526667638455926794"
 export const CONTACT_EMAIL = "gabrielccarvalhopro@gmail.com"
+
+/** Brand / short name used throughout the copy. */
 export const COMPANY_NAME = "OctoBot"
-export const GOVERNING_LAW = "[jurisdiction]"
+/** Registered entity behind OctoBot. */
+export const COMPANY_LEGAL_NAME = "GABRIEL CAMPOS DOS SANTOS P DE CARVALHO LTDA"
+export const COMPANY_CNPJ = "58.378.419/0001-61"
+/** Governing law and venue (foro) for the Terms. */
+export const GOVERNING_LAW = "the Federative Republic of Brazil"
+export const JURISDICTION_FORUM = "the Comarca de São Paulo/SP"
+
 export const LAST_UPDATED = "July 14, 2026"
 
 export const NAV_LINKS = [

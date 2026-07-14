@@ -1,7 +1,12 @@
 import type { Metadata } from "next"
 
 import { LegalPage } from "@/components/legal/legal-page"
-import { COMPANY_NAME, CONTACT_EMAIL } from "@/lib/content"
+import {
+  COMPANY_NAME,
+  COMPANY_LEGAL_NAME,
+  COMPANY_CNPJ,
+  CONTACT_EMAIL,
+} from "@/lib/content"
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -13,7 +18,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      intro={`This policy explains what OctoBot collects, why, and how to remove it. ${COMPANY_NAME} is the controller of this data. The short version: we store as little as the service needs, encrypt your access token, and delete everything when you run /unlink.`}
+      intro={`This policy explains what OctoBot collects, why, and how to remove it. ${COMPANY_NAME}, operated by ${COMPANY_LEGAL_NAME} (CNPJ ${COMPANY_CNPJ}), is the controller of your personal data under Brazil's General Data Protection Law (LGPD, Lei nº 13.709/2018). The short version: we store as little as the service needs, encrypt your access token, and delete everything when you run /unlink.`}
     >
       <h2>1. What we collect</h2>
       <p>
@@ -125,11 +130,12 @@ export default function PrivacyPage() {
         OctoBot to hold as little as possible and to protect what it must hold.
       </p>
 
-      <h2>7. International users</h2>
+      <h2>7. International data transfers</h2>
       <p>
-        OctoBot may process and store your data on servers located outside your
-        country. By using the service, you consent to that transfer and
-        processing.
+        OctoBot may process and store your data on servers located outside
+        Brazil. Where that happens, we rely on your consent and on appropriate
+        safeguards for the transfer, as permitted by the LGPD, and we only use
+        providers that protect your data to a comparable standard.
       </p>
 
       <h2>8. Children</h2>
@@ -139,13 +145,36 @@ export default function PrivacyPage() {
         and we do not knowingly collect data from anyone below that age.
       </p>
 
-      <h2>9. Your rights</h2>
+      <h2>9. Legal basis and your rights under the LGPD</h2>
       <p>
-        Depending on where you live, you may have the right to access, correct,
-        export, or delete the personal data we hold about you, or to object to
-        or restrict its processing. You can delete your data yourself at any time
-        with <code>/unlink</code>; for any other request, contact us using the
-        details below.
+        We process your personal data under Brazil&apos;s LGPD. Our legal bases
+        are your <strong>consent</strong> — which you give by connecting your
+        account — and our <strong>legitimate interest</strong> in operating the
+        service you asked for. You can withdraw consent at any time by
+        disconnecting.
+      </p>
+      <p>Under the LGPD, you have the right to:</p>
+      <ul>
+        <li>confirm that we process your data, and access it;</li>
+        <li>correct incomplete, inaccurate, or outdated data;</li>
+        <li>
+          request anonymization, blocking, or deletion of data that is
+          unnecessary or processed outside the law;
+        </li>
+        <li>request portability of your data to another provider;</li>
+        <li>be told which entities we share your data with;</li>
+        <li>be informed of the consequences of refusing consent;</li>
+        <li>
+          withdraw your consent and have data processed on that basis deleted.
+        </li>
+      </ul>
+      <p>
+        You can delete your data yourself at any time with <code>/unlink</code>.
+        For any other request, or to reach our data protection officer
+        (encarregado), email{" "}
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. You may also
+        lodge a complaint with Brazil&apos;s National Data Protection Authority
+        (ANPD).
       </p>
 
       <h2>10. Changes to this policy</h2>
