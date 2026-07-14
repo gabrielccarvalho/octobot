@@ -1,40 +1,53 @@
 import type { NotificationItem } from "./github/notifications";
-import type { LatestReview } from "./github/reviews";
+import type { PrEventKind } from "./github/timeline";
+import type { ChecksVerdict } from "./github/checks";
 import { reasonMeta } from "./github/taxonomy";
 
 export interface DmSender {
   sendDm(discordId: string, message: string): Promise<void>;
 }
 
-export type Verdict = "approved" | "changes_requested" | "reviewed";
+// A resolved explanation of what triggered a PR notification.
+export type PrOutcome =
+  | { source: "event"; kind: PrEventKind }
+  | { source: "checks"; verdict: ChecksVerdict };
 
-const VERDICT_BY_STATE: Record<string, Verdict> = {
-  APPROVED: "approved",
-  CHANGES_REQUESTED: "changes_requested",
-  COMMENTED: "reviewed",
-};
-
-const VERDICT_TOLERANCE_MS = 10_000;
-
-export function resolveVerdict(item: NotificationItem, latestReview: LatestReview | null): Verdict | null {
-  if (!latestReview) return null;
-  const verdict = VERDICT_BY_STATE[latestReview.state];
-  if (!verdict) return null; // DISMISSED or unknown
-  // Only trust the review if it was submitted ~when this notification fired; otherwise
-  // it's an old review on a PR that just got an unrelated event (e.g. a new comment).
-  const drift = Math.abs(Date.parse(latestReview.submittedAt) - Date.parse(item.updatedAt));
-  if (drift > VERDICT_TOLERANCE_MS) return null;
-  return verdict;
-}
-
-const VERDICT_LABEL: Record<Verdict, { emoji: string; label: string }> = {
+const PR_EVENT_LABEL: Record<PrEventKind, { emoji: string; label: string }> = {
   approved: { emoji: "✅", label: "Your PR was approved" },
   changes_requested: { emoji: "🔧", label: "Changes requested on your PR" },
   reviewed: { emoji: "💬", label: "New review on your PR" },
+  commented: { emoji: "💬", label: "New comment on your PR" },
+  committed: { emoji: "📌", label: "New commits on your PR" },
+  merged: { emoji: "🎉", label: "Your PR was merged" },
+  closed: { emoji: "🚪", label: "Your PR was closed" },
+  reopened: { emoji: "🔓", label: "Your PR was reopened" },
+  ready_for_review: { emoji: "📝", label: "Marked ready for review" },
+  converted_to_draft: { emoji: "📄", label: "Converted to draft" },
+  assigned: { emoji: "👤", label: "You were assigned" },
+  labeled: { emoji: "🏷️", label: "Labels changed on your PR" },
+  review_requested: { emoji: "🔔", label: "Review requested" },
+  mentioned: { emoji: "📣", label: "Mentioned" },
 };
 
-export function formatNotification(item: NotificationItem, verdict?: Verdict | null): string {
-  const { emoji, label } = verdict ? VERDICT_LABEL[verdict] : reasonMeta(item.reason);
+const CHECKS_LABEL: Record<ChecksVerdict, { emoji: string; label: string }> = {
+  passed: { emoji: "✅", label: "CI passed on your PR" },
+  failed: { emoji: "❌", label: "CI failed on your PR" },
+};
+
+// GitHub's `reason` collapses to a catch-all for authored/subscribed PRs. When we
+// could not classify the event, still avoid the bare "Activity on your PR".
+const GENERIC_PR_REASONS = new Set(["author", "subscribed", "your_activity", "manual"]);
+const PR_FALLBACK = { emoji: "🔔", label: "Update on your PR" };
+
+function resolveMeta(item: NotificationItem, outcome: PrOutcome | null): { emoji: string; label: string } {
+  if (outcome?.source === "event") return PR_EVENT_LABEL[outcome.kind];
+  if (outcome?.source === "checks") return CHECKS_LABEL[outcome.verdict];
+  if (item.subjectType === "PullRequest" && GENERIC_PR_REASONS.has(item.reason)) return PR_FALLBACK;
+  return reasonMeta(item.reason);
+}
+
+export function formatNotification(item: NotificationItem, outcome?: PrOutcome | null): string {
+  const { emoji, label } = resolveMeta(item, outcome ?? null);
   // Discord renders <t:UNIX:R> as a localized, auto-updating "5 minutes ago".
   const unix = Math.floor(new Date(item.updatedAt).getTime() / 1000);
   // Masked link keeps it clickable while suppressing Discord's bulky link embed.

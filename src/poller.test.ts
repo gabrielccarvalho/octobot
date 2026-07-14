@@ -3,14 +3,16 @@ import { createDatabase, type Database, type User } from "./db";
 import { pollUser, type PollerDeps } from "./poller";
 import type { FetchResult } from "./github/notifications";
 import type { DmSender } from "./notifier";
-import type { LatestReview } from "./github/reviews";
+import type { PrEvent } from "./github/timeline";
+import type { ChecksVerdict } from "./github/checks";
 import { ssoWarnedMetaValue } from "./github/sso";
 
 let db: Database;
 let sent: { discordId: string; message: string }[];
 let sender: DmSender;
 let nextResult: FetchResult;
-let nextReview: LatestReview | null;
+let nextEvent: PrEvent | null;
+let nextChecks: ChecksVerdict | null;
 
 const prItem = {
   threadId: "t1",
@@ -32,7 +34,8 @@ function deps(): PollerDeps {
     sender,
     decryptToken: () => "tok",
     fetchNotifications: async () => nextResult,
-    fetchLatestReview: async () => nextReview,
+    fetchPrEvent: async () => nextEvent,
+    fetchChecksVerdict: async () => nextChecks,
   };
 }
 
@@ -42,7 +45,8 @@ beforeEach(() => {
   db.updateLastModified("d1", "Mon");
   sent = [];
   sender = { sendDm: async (discordId, message) => { sent.push({ discordId, message }); } };
-  nextReview = null;
+  nextEvent = null;
+  nextChecks = null;
 });
 
 it("DMs a new PR notification and marks it", async () => {
@@ -98,24 +102,33 @@ it("skips a user that has no baseline (null lastModified)", async () => {
     sender,
     decryptToken: () => "tok",
     fetchNotifications,
-    fetchLatestReview: async () => null,
+    fetchPrEvent: async () => null,
+    fetchChecksVerdict: async () => null,
   };
   await pollUser(localDeps, fresh.getUser("d2")!);
   expect(fetchNotifications).not.toHaveBeenCalled();
   expect(sent).toHaveLength(0);
 });
 
-it("renders the fetched verdict in the DM", async () => {
+it("renders the classified event in the DM", async () => {
   nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
-  nextReview = { state: "APPROVED", submittedAt: prItem.updatedAt };
+  nextEvent = { kind: "approved", at: prItem.updatedAt };
   await pollUser(deps(), user());
   expect(sent[0].message).toContain("Your PR was approved");
 });
 
-it("falls back to the generic label when the review lookup throws", async () => {
+it("falls back to a CI verdict when the timeline yields no event", async () => {
+  nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+  nextEvent = null;
+  nextChecks = "failed";
+  await pollUser(deps(), user());
+  expect(sent[0].message).toContain("CI failed on your PR");
+});
+
+it("still delivers the notification when enrichment throws", async () => {
   nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
   const d = deps();
-  d.fetchLatestReview = async () => { throw new Error("boom"); };
+  d.fetchPrEvent = async () => { throw new Error("boom"); };
   await pollUser(d, user());
   expect(sent).toHaveLength(1);
   expect(sent[0].message).toContain("Review requested"); // prItem.reason fallback, DM not dropped
