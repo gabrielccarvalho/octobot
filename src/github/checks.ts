@@ -13,17 +13,19 @@ interface RawCheckRuns {
   check_runs?: RawCheckRun[];
 }
 
-const FAILING = new Set(["failure", "timed_out", "cancelled", "startup_failure", "action_required"]);
+const FAILING = new Set(["failure", "timed_out", "action_required"]);
+const NON_DECISIVE = new Set(["cancelled", "stale"]);
 
 // null = still running / no checks; "failed" if any completed run failed; else "passed".
 export function verdictFromRuns(runs: RawCheckRun[]): ChecksVerdict | null {
-  let sawCompleted = false;
+  let sawDecisive = false;
   for (const r of runs) {
     if (r.status !== "completed") continue;
-    sawCompleted = true;
+    if (r.conclusion && NON_DECISIVE.has(r.conclusion)) continue; // cancelled/stale don't decide a verdict
+    sawDecisive = true;
     if (r.conclusion && FAILING.has(r.conclusion)) return "failed";
   }
-  return sawCompleted ? "passed" : null;
+  return sawDecisive ? "passed" : null;
 }
 
 export async function fetchChecksVerdict(

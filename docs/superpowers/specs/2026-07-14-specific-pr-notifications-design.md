@@ -108,7 +108,7 @@ fetchPrEvent(token, repo, n, at=updatedAt)     ← 1 call (timeline, last page)
     │
  ┌──┴───────────────┐
  ▼ event found      ▼ none
-map kind → label   fetchChecksVerdict(...)      ← +1 call, only when timeline empty
+map kind → label   fetchChecksVerdict(...)      ← +2 calls (resolve head sha, then check-runs), only when timeline empty
                     │
                  ┌──┴────┐
                  ▼ yes   ▼ no
@@ -121,7 +121,8 @@ formatNotification(item, event) → sendDm → markNotified
 ### API-cost profile
 
 - Common case: **1 extra call** per new PR notification — *net neutral* vs. today's single reviews call.
-- Checks probe fires **only** when the timeline is empty.
+- Checks probe fires **only** when the timeline is empty (and, per the poller's `ci_activity` gating, only when GitHub flags the notification as CI) and costs **+2 calls** (resolve the PR's head sha, then read its check-runs), not +1.
+- Worst case: 2 timeline pages (last-page jump) + 2 checks calls = 4 calls for a single notification.
 - Non-PR notifications and already-seen threads: **zero** extra calls.
 
 ### Mitigations (polling bottleneck, ~120–250 users)

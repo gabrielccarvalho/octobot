@@ -81,7 +81,11 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
         const event = await deps.fetchPrEvent(token, item.repoFullName, item.subjectNumber, item.updatedAt);
         if (event) {
           outcome = { source: "event", kind: event.kind };
-        } else {
+        } else if (item.reason === "ci_activity") {
+          // selectPrEvent also returns null for unmapped-but-notifying events (rename,
+          // dismissed review, cross-reference, base-branch force-push); only probe CI
+          // when GitHub itself flags the notification as CI activity, so those don't
+          // get mislabeled "CI passed/failed".
           const verdict = await deps.fetchChecksVerdict(token, item.repoFullName, item.subjectNumber);
           if (verdict) outcome = { source: "checks", verdict };
         }

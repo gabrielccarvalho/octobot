@@ -65,6 +65,11 @@ describe("selectPrEvent", () => {
   it("returns null for an empty timeline", () => {
     expect(selectPrEvent([], AT)).toBeNull();
   });
+
+  it("maps a line-commented event to commented and an unlabeled event to labeled", () => {
+    expect(selectPrEvent([ev("line-commented", AT)], AT)?.kind).toBe("commented");
+    expect(selectPrEvent([ev("unlabeled", AT)], AT)?.kind).toBe("labeled");
+  });
 });
 
 function fakeFetch(pages: { status: number; body: unknown; link?: string | null }[]): FetchLike {
@@ -98,6 +103,15 @@ describe("fetchPrEvent", () => {
 
   it("returns null on a non-200 timeline response", async () => {
     expect(await fetchPrEvent("tok", "acme/repo", 42, AT, fakeFetch([{ status: 404, body: null }]))).toBeNull();
+  });
+
+  it("does not follow a second page when the Link header lacks rel=last", async () => {
+    const f = fakeFetch([
+      { status: 200, body: [{ event: "merged", created_at: AT }],
+        link: '<https://api.github.com/repositories/1/issues/42/timeline?per_page=100&page=1>; rel="first"' },
+      { status: 200, body: [{ event: "closed", created_at: AT }] }, // would be picked if a second page were fetched
+    ]);
+    expect((await fetchPrEvent("tok", "acme/repo", 42, AT, f))?.kind).toBe("merged");
   });
 
   it("requests the issues timeline endpoint with per_page=100 and a bearer token", async () => {

@@ -21,6 +21,18 @@ describe("verdictFromRuns", () => {
   it("returns null for no runs", () => {
     expect(verdictFromRuns([])).toBeNull();
   });
+
+  it("treats a cancelled run as non-decisive alongside only in-progress runs", () => {
+    expect(verdictFromRuns([run("completed", "cancelled"), run("in_progress", null)])).toBeNull();
+  });
+
+  it("treats a cancelled run as non-decisive when a completed success is also present", () => {
+    expect(verdictFromRuns([run("completed", "cancelled"), run("completed", "success")])).toBe("passed");
+  });
+
+  it("returns null for a completed set that is only stale", () => {
+    expect(verdictFromRuns([run("completed", "stale")])).toBeNull();
+  });
 });
 
 function seq(responses: { status: number; body: unknown }[]): FetchLike {
@@ -50,13 +62,19 @@ describe("fetchChecksVerdict", () => {
 
   it("hits the pulls and check-runs endpoints with the sha", async () => {
     const urls: string[] = [];
-    const f: FetchLike = async (u) => {
+    const headersSeen: (Record<string, string> | undefined)[] = [];
+    const f: FetchLike = async (u, init) => {
       urls.push(u);
+      headersSeen.push(init?.headers);
       const body = urls.length === 1 ? { head: { sha: "deadbeef" } } : { check_runs: [run("completed", "success")] };
       return { status: 200, ok: true, headers: { get: () => null }, json: async () => body, text: async () => "" };
     };
     await fetchChecksVerdict("tok", "acme/repo", 42, f);
     expect(urls[0]).toBe("https://api.github.com/repos/acme/repo/pulls/42");
     expect(urls[1]).toBe("https://api.github.com/repos/acme/repo/commits/deadbeef/check-runs");
+    for (const h of headersSeen) {
+      expect(h?.authorization).toBe("Bearer tok");
+      expect(h?.accept).toBe("application/vnd.github+json");
+    }
   });
 });

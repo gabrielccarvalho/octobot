@@ -118,11 +118,24 @@ it("renders the classified event in the DM", async () => {
 });
 
 it("falls back to a CI verdict when the timeline yields no event", async () => {
-  nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+  nextResult = { status: 200, items: [{ ...prItem, reason: "ci_activity" }], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
   nextEvent = null;
   nextChecks = "failed";
   await pollUser(deps(), user());
   expect(sent[0].message).toContain("CI failed on your PR");
+});
+
+it("does not probe CI for an unmapped non-CI reason when the timeline yields no event", async () => {
+  nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+  nextEvent = null;
+  nextChecks = "passed";
+  const d = deps();
+  d.fetchChecksVerdict = vi.fn(async () => nextChecks);
+  await pollUser(d, user());
+  expect(d.fetchChecksVerdict).not.toHaveBeenCalled();
+  expect(sent[0].message).not.toContain("CI passed");
+  expect(sent[0].message).not.toContain("CI failed");
+  expect(sent[0].message).toContain("Review requested"); // prItem.reason fallback
 });
 
 it("still delivers the notification when enrichment throws", async () => {
