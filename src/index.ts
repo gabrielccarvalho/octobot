@@ -8,7 +8,8 @@ import { startDiscord } from "./discord/client";
 import { buildAuthorizeUrl, exchangeCode, fetchViewerLogin, validateToken } from "./github/oauth";
 import { fetchNotifications } from "./github/notifications";
 import { fetchSsoPartialOrgs } from "./github/sso";
-import { fetchLatestReview } from "./github/reviews";
+import { fetchPrEvent } from "./github/timeline";
+import { fetchChecksVerdict } from "./github/checks";
 import {
   searchPullRequests,
   searchMyPrsAwaitingReview,
@@ -115,8 +116,10 @@ async function main() {
     sender,
     decryptToken,
     fetchNotifications: (token, lastModified) => fetchNotifications(token, lastModified),
-    fetchLatestReview: (token, repoFullName, prNumber) =>
-      fetchLatestReview(token, repoFullName, prNumber),
+    fetchPrEvent: (token, repoFullName, prNumber, at) =>
+      fetchPrEvent(token, repoFullName, prNumber, at),
+    fetchChecksVerdict: (token, repoFullName, prNumber) =>
+      fetchChecksVerdict(token, repoFullName, prNumber),
   });
 
   const scheduler = startDigestScheduler(digestDeps);

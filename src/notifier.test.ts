@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { formatNotification, resolveVerdict } from "./notifier";
+import { formatNotification, type PrOutcome } from "./notifier";
 import type { NotificationItem } from "./github/notifications";
-import type { LatestReview } from "./github/reviews";
 
 const item: NotificationItem = {
   threadId: "t1",
@@ -14,86 +13,55 @@ const item: NotificationItem = {
   subjectUrl: "https://github.com/acme/repo/pull/42",
 };
 
+const authorItem: NotificationItem = { ...item, reason: "author" };
+
 describe("formatNotification", () => {
-  it("renders a review_requested notification in the two-line masked-link layout", () => {
-    const msg = formatNotification(item);
-    const [first, second] = msg.split("\n");
-    // Line 1: bold reason · repo · relative timestamp
+  it("renders a reason label in the two-line masked-link layout when there is no outcome", () => {
+    const [first, second] = formatNotification(item).split("\n");
     expect(first).toContain("**Review requested**");
     expect(first).toContain("acme/repo");
-    // Discord relative timestamp for 2026-06-17T10:00:00Z
     const unix = Math.floor(Date.parse("2026-06-17T10:00:00Z") / 1000);
     expect(first).toContain(`<t:${unix}:R>`);
-    // Line 2: masked link with PR number + title (suppresses Discord's embed)
     expect(second).toBe("[#42 Fix the widget](https://github.com/acme/repo/pull/42)");
   });
 
-  it("falls back to a generic prefix for unknown reasons", () => {
-    expect(formatNotification({ ...item, reason: "totally_made_up" })).toContain("New activity");
-  });
-
   it("renders a numberless subject without a leading #", () => {
-    const release = {
-      ...item,
-      reason: "subscribed",
-      subjectType: "Release",
-      subjectNumber: null,
-      subjectTitle: "v1.2.0",
-      subjectUrl: "https://github.com/acme/repo",
-    };
-    const second = formatNotification(release).split("\n")[1];
-    expect(second).toBe("[v1.2.0](https://github.com/acme/repo)");
+    const release = { ...item, reason: "subscribed", subjectType: "Release", subjectNumber: null, subjectTitle: "v1.2.0", subjectUrl: "https://github.com/acme/repo" };
+    expect(formatNotification(release).split("\n")[1]).toBe("[v1.2.0](https://github.com/acme/repo)");
   });
 
-  it("renders the approved verdict, overriding the reason label", () => {
-    const first = formatNotification(item, "approved").split("\n")[0];
-    expect(first).toContain("✅");
-    expect(first).toContain("**Your PR was approved**");
+  const eventCases: [PrOutcome, string, string][] = [
+    [{ source: "event", kind: "approved" }, "✅", "Your PR was approved"],
+    [{ source: "event", kind: "changes_requested" }, "🔧", "Changes requested on your PR"],
+    [{ source: "event", kind: "reviewed" }, "💬", "New review on your PR"],
+    [{ source: "event", kind: "commented" }, "💬", "New comment on your PR"],
+    [{ source: "event", kind: "committed" }, "📌", "New commits on your PR"],
+    [{ source: "event", kind: "merged" }, "🎉", "Your PR was merged"],
+    [{ source: "event", kind: "closed" }, "🚪", "Your PR was closed"],
+    [{ source: "event", kind: "reopened" }, "🔓", "Your PR was reopened"],
+    [{ source: "event", kind: "ready_for_review" }, "📝", "Marked ready for review"],
+    [{ source: "event", kind: "converted_to_draft" }, "📄", "Converted to draft"],
+    [{ source: "event", kind: "assigned" }, "👤", "You were assigned"],
+    [{ source: "event", kind: "labeled" }, "🏷️", "Labels changed on your PR"],
+    [{ source: "event", kind: "review_requested" }, "🔔", "Review requested"],
+    [{ source: "event", kind: "mentioned" }, "📣", "Mentioned"],
+    [{ source: "checks", verdict: "passed" }, "✅", "CI passed on your PR"],
+    [{ source: "checks", verdict: "failed" }, "❌", "CI failed on your PR"],
+  ];
+
+  it.each(eventCases)("renders %o as its label", (outcome, emoji, label) => {
+    const first = formatNotification(item, outcome).split("\n")[0];
+    expect(first).toContain(emoji);
+    expect(first).toContain(`**${label}**`);
   });
 
-  it("renders the changes-requested verdict", () => {
-    const first = formatNotification(item, "changes_requested").split("\n")[0];
-    expect(first).toContain("🔧");
-    expect(first).toContain("**Changes requested on your PR**");
+  it("never shows the bare generic label for an author PR with no outcome", () => {
+    const first = formatNotification(authorItem, null).split("\n")[0];
+    expect(first).not.toContain("Activity on your PR");
+    expect(first).toContain("**Update on your PR**");
   });
 
-  it("renders the reviewed verdict", () => {
-    const first = formatNotification(item, "reviewed").split("\n")[0];
-    expect(first).toContain("💬");
-    expect(first).toContain("**New review on your PR**");
-  });
-
-  it("ignores a null verdict and uses the reason label", () => {
-    expect(formatNotification(item, null)).toContain("**Review requested**");
-  });
-});
-
-describe("resolveVerdict", () => {
-  // item.updatedAt is "2026-06-17T10:00:00Z" (defined at top of file)
-  const at = (state: LatestReview["state"], submittedAt: string): LatestReview => ({ state, submittedAt });
-
-  it("returns null when there is no review", () => {
-    expect(resolveVerdict(item, null)).toBeNull();
-  });
-
-  it("maps an approval submitted at the notification time", () => {
-    expect(resolveVerdict(item, at("APPROVED", "2026-06-17T10:00:00Z"))).toBe("approved");
-  });
-
-  it("maps changes requested", () => {
-    expect(resolveVerdict(item, at("CHANGES_REQUESTED", "2026-06-17T10:00:05Z"))).toBe("changes_requested");
-  });
-
-  it("maps a commented review to reviewed", () => {
-    expect(resolveVerdict(item, at("COMMENTED", "2026-06-17T10:00:00Z"))).toBe("reviewed");
-  });
-
-  it("returns null for a dismissed review", () => {
-    expect(resolveVerdict(item, at("DISMISSED", "2026-06-17T10:00:00Z"))).toBeNull();
-  });
-
-  it("ignores a stale review outside the timestamp tolerance", () => {
-    // approval happened 5 minutes before this notification's updatedAt -> not the trigger
-    expect(resolveVerdict(item, at("APPROVED", "2026-06-17T09:55:00Z"))).toBeNull();
+  it("keeps a specific reason label (mention) as the fallback when there is no outcome", () => {
+    expect(formatNotification({ ...item, reason: "mention" }, null)).toContain("**Mentioned**");
   });
 });
