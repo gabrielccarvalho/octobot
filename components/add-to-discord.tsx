@@ -15,6 +15,8 @@ export function AddToDiscord({
   return (
     <a
       href={DISCORD_INVITE_URL}
+      target="_blank"
+      rel="noreferrer noopener"
       className={cn(
         buttonVariants({ variant: "default" }),
         "group/cta gap-2 shadow-[0_8px_30px_-8px_color-mix(in_oklch,var(--primary)_70%,transparent)] hover:shadow-[0_10px_36px_-6px_color-mix(in_oklch,var(--primary)_85%,transparent)]",

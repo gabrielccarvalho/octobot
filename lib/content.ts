@@ -6,8 +6,9 @@
 
 // --- Site-wide constants -----------------------------------------------------
 
-/** Placeholder — swap for the real Discord install / OAuth URL. */
-export const DISCORD_INVITE_URL = "#add-to-discord"
+/** Discord install / OAuth authorization URL for the OctoBot application. */
+export const DISCORD_INVITE_URL =
+  "https://discord.com/oauth2/authorize?client_id=1526667638455926794"
 export const GITHUB_REPO_URL = "https://github.com"
 export const CONTACT_EMAIL = "gabrielccarvalhopro@gmail.com"
 export const COMPANY_NAME = "[Company legal name]"
