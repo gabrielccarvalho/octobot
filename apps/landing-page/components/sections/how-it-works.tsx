@@ -20,7 +20,7 @@ export function HowItWorks() {
             delay={i * 60}
             className="relative flex flex-col gap-4 bg-card/70 p-7 backdrop-blur-sm"
           >
-            <HowItWorksScene scene={step.scene} className="h-28 w-full" />
+            <HowItWorksScene scene={step.scene} className="w-full" />
             <div className="flex items-baseline gap-3">
               <span className="font-mono text-sm text-biolume">{step.n}</span>
               <span className="h-px flex-1 bg-border" aria-hidden />

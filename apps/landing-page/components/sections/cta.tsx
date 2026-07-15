@@ -1,5 +1,6 @@
+import Image from "next/image"
+
 import { AddToDiscord } from "@/components/add-to-discord"
-import { OctobotMascot } from "@/components/mascot/octobot-mascot"
 import { DISCORD_COMMUNITY_URL } from "@/lib/content"
 
 export function Cta() {
@@ -12,7 +13,13 @@ export function Cta() {
         />
 
         <div className="mx-auto flex justify-center">
-          <OctobotMascot pose="peek" title="OctoBot" className="size-20" />
+          <Image
+            src="/mascot/octobot.png"
+            alt="OctoBot"
+            width={256}
+            height={256}
+            className="size-44 rounded-3xl drop-shadow-[0_0_48px_color-mix(in_oklch,var(--primary)_45%,transparent)] sm:size-52"
+          />
         </div>
 
         <h2 className="mx-auto mt-6 max-w-2xl font-display text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
