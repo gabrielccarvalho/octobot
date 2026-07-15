@@ -206,6 +206,31 @@
   animation: wave-drift 22s linear infinite;
 }
 
+/* The water body below the crest: same color as the front wave at the seam,
+   thinning out as it merges into the deep backdrop. */
+.water-column {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--biolume) 18%, transparent),
+    color-mix(in oklch, var(--biolume) 7%, transparent) 45%,
+    transparent
+  );
+}
+
+/* Light rays filtering down from the surface. */
+@keyframes rays-shimmer {
+  from { opacity: 0.35; }
+  to { opacity: 0.65; }
+}
+.water-rays {
+  background:
+    linear-gradient(101deg, transparent 40%, color-mix(in oklch, var(--biolume) 20%, transparent) 46%, transparent 52%),
+    linear-gradient(80deg, transparent 26%, color-mix(in oklch, var(--biolume) 13%, transparent) 33%, transparent 40%),
+    linear-gradient(94deg, transparent 63%, color-mix(in oklch, var(--biolume) 17%, transparent) 69%, transparent 75%);
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+  animation: rays-shimmer 7s ease-in-out infinite alternate;
+}
+
 /* Abyss CTA panel: deliberately deep in both themes. */
 .abyss-panel {
   background:

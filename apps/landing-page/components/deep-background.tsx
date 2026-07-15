@@ -8,8 +8,8 @@ export function DeepBackground() {
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll()
   const eased = useSpring(scrollYProgress, { stiffness: 60, damping: 20 })
-  const abyssOpacity = useTransform(eased, [0, 0.3, 1], [0, 0.4, 1])
-  const snowOpacity = useTransform(eased, [0.12, 0.45], [0, 1])
+  const abyssOpacity = useTransform(eased, [0, 0.12, 0.4, 1], [0, 0.35, 0.6, 1])
+  const snowOpacity = useTransform(eased, [0.08, 0.35], [0, 1])
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>

@@ -8,7 +8,6 @@ import { AddToDiscord } from "@/components/add-to-discord"
 import { DmCard } from "@/components/dm-message"
 import { Icon } from "@/components/icon"
 import { Eyebrow } from "@/components/section"
-import { Waterline } from "@/components/waterline"
 import {
   HERO_MESSAGES,
   VALUE_POINTS,
@@ -190,9 +189,6 @@ export function Hero() {
           ))}
         </div>
       </div>
-
-      {/* Going under */}
-      <Waterline className="mt-6" />
     </section>
   )
 }
