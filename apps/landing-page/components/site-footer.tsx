@@ -13,7 +13,7 @@ import {
 
 export function SiteFooter() {
   return (
-    <footer className="relative mt-24 border-t border-border/60">
+    <footer className="relative mt-24 border-t border-border/60 bg-background/70 backdrop-blur-sm">
       <div className="mx-auto max-w-6xl px-6 py-14">
         <div className="flex flex-col gap-10 md:flex-row md:justify-between">
           <div className="max-w-xs">

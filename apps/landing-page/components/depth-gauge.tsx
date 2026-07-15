@@ -16,6 +16,10 @@ export function DepthGauge() {
     if (readoutRef.current) {
       readoutRef.current.textContent = `-${Math.round(p * MAX_DEPTH)}m`
     }
+    // At the very bottom the observer band sits on the footer — force the last beat.
+    if (p > 0.98) {
+      setActive(BEATS[BEATS.length - 1].id)
+    }
   })
 
   React.useEffect(() => {
