@@ -1,5 +1,6 @@
 import { Section } from "@/components/section"
 import { Icon } from "@/components/icon"
+import { OctobotMascot } from "@/components/mascot/octobot-mascot"
 import { OPEN_SOURCE, GITHUB_REPO_URL } from "@/lib/content"
 
 export function OpenSource() {
@@ -41,8 +42,9 @@ export function OpenSource() {
             </div>
           </div>
 
-          {/* MASCOT SLOT — filled in Task C6 with <OctobotMascot pose="wave" /> */}
-          <div className="shrink-0" aria-hidden />
+          <div className="shrink-0">
+            <OctobotMascot pose="wave" title="OctoBot waving" className="size-40 sm:size-48" />
+          </div>
         </div>
       </div>
     </Section>

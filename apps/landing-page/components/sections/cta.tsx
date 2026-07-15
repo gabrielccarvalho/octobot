@@ -1,6 +1,5 @@
-import Image from "next/image"
-
 import { AddToDiscord } from "@/components/add-to-discord"
+import { OctobotMascot } from "@/components/mascot/octobot-mascot"
 import { DISCORD_COMMUNITY_URL } from "@/lib/content"
 
 export function Cta() {
@@ -12,13 +11,9 @@ export function Cta() {
           aria-hidden
         />
 
-        <Image
-          src="/logo.png"
-          alt=""
-          width={72}
-          height={72}
-          className="mx-auto drop-shadow-[0_0_28px_color-mix(in_oklch,var(--primary)_55%,transparent)]"
-        />
+        <div className="mx-auto flex justify-center">
+          <OctobotMascot pose="peek" title="OctoBot" className="size-20" />
+        </div>
 
         <h2 className="mx-auto mt-6 max-w-2xl font-display text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
           Stop refreshing the notifications tab
