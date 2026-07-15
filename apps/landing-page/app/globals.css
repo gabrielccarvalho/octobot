@@ -221,12 +221,23 @@
 }
 .reveal-run { animation: reveal-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* scroll-triggered line-draw for How It Works scenes */
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+.draw-line {
+  stroke-dasharray: var(--len, 200);
+  stroke-dashoffset: var(--len, 200);
+  animation: draw-line 1s ease forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .biolume-dot { animation: none; }
   .mascot-float, .mascot-blink { animation: none !important; }
   .reveal-pending { opacity: 1 !important; }
   .reveal-run { animation: none !important; }
+  .draw-line { animation: none !important; stroke-dashoffset: 0 !important; }
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;

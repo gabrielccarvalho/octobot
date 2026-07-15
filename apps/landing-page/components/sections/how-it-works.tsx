@@ -1,3 +1,4 @@
+import { HowItWorksScene } from "@/components/how-it-works-scene"
 import { Section, SectionHeading } from "@/components/section"
 import { STEPS } from "@/lib/content"
 
@@ -16,6 +17,7 @@ export function HowItWorks() {
             key={step.n}
             className="relative flex flex-col gap-4 bg-card/70 p-7 backdrop-blur-sm"
           >
+            <HowItWorksScene scene={step.scene} className="h-28 w-full" />
             <div className="flex items-baseline gap-3">
               <span className="font-mono text-sm text-biolume">{step.n}</span>
               <span className="h-px flex-1 bg-border" aria-hidden />
