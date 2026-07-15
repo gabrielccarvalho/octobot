@@ -224,6 +224,14 @@ export const REASONS = [
   "⬆️ New commits pushed",
 ] as const
 
+// --- The Noise (narrative beat) ----------------------------------------------
+
+export const NOISE = {
+  eyebrow: "The problem",
+  title: "GitHub never shuts up",
+  body: "Every repo, every thread, every ping. Scroll: the noise sinks. What needs you surfaces as a single DM.",
+} as const
+
 // --- Security ----------------------------------------------------------------
 
 export type SecurityPoint = {
