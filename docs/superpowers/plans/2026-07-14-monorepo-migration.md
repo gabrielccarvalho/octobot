@@ -43,12 +43,16 @@ Expected: `chore/monorepo` and no uncommitted changes (the spec commit is alread
 ```bash
 mkdir -p apps/landing-page packages
 touch packages/.gitkeep
-# Move every tracked root entry EXCEPT git/monorepo-level files into apps/landing-page
-for item in app components lib public package.json pnpm-lock.yaml tsconfig.json next.config.ts next.config.js next.config.mjs postcss.config.mjs postcss.config.js tailwind.config.ts components.json next-env.d.ts .gitignore README.md eslint.config.mjs .prettierrc .prettierignore; do
-  [ -e "$item" ] && git mv "$item" apps/landing-page/ 2>/dev/null || true
+# Move all tracked site source/config into apps/landing-page (exact list from `git ls-tree HEAD`).
+# pnpm-lock.yaml, pnpm-workspace.yaml, and docs/ intentionally STAY at the repo root.
+for item in app components lib hooks public \
+            package.json tsconfig.json next.config.ts postcss.config.mjs \
+            components.json eslint.config.mjs .prettierrc .prettierignore \
+            .gitignore AGENTS.md README.md; do
+  git mv "$item" apps/landing-page/
 done
 ```
-Note: the glob list is defensive — only existing files move. `docs/`, `.git/`, and `pnpm-workspace.yaml` intentionally stay at root.
+Every listed file exists (verified against `git ls-tree HEAD`), so `git mv` will not error. **`pnpm-lock.yaml` is NOT moved** — a pnpm workspace's lockfile lives at the workspace root. `docs/`, `.git/`, and `pnpm-workspace.yaml` also stay at root. Untracked generated files (`node_modules/`, `.next/`, `next-env.d.ts`, `tsconfig.tsbuildinfo`) are not moved; they are cleaned in Step 9.
 
 - [ ] **Step 3: Verify the move and that nothing site-related is left at root**
 
@@ -157,10 +161,15 @@ Then write root `.dockerignore` (used later by the bot's root-context build):
 **/data
 ```
 
-- [ ] **Step 9: Install and build the site from its new home**
+- [ ] **Step 9: Clean stale root artifacts, then install and build the site from its new home**
 
-Run: `pnpm install && pnpm --filter landing-page build`
-Expected: install completes writing a single root `pnpm-lock.yaml`; Next.js build prints `✓ Compiled successfully` and prerenders `/`, `/terms`, `/privacy`.
+```bash
+# Remove stale root-level generated dirs so they don't shadow the workspace
+rm -rf node_modules .next next-env.d.ts tsconfig.tsbuildinfo
+pnpm install
+pnpm --filter landing-page build
+```
+Expected: install completes updating the root `pnpm-lock.yaml`; Next.js build prints `✓ Compiled successfully` and prerenders `/`, `/terms`, `/privacy`.
 If install errors that the lockfile is out of date, run `pnpm install --no-frozen-lockfile` once to regenerate it at root.
 
 - [ ] **Step 10: Commit**
