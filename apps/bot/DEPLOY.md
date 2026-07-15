@@ -1,12 +1,18 @@
 # Deploying the bot (Fly.io)
 
 The bot lives in a pnpm monorepo. Its Docker build context is the **repo root**,
-so deploy from the repo root, not from this directory:
+so deploy from the repo root with a trailing `.` (the positional build-context
+arg). Use `flyctl`, not `fly` (on some machines `fly` is shadowed by an unrelated
+node CLI):
 
 ```bash
 # from the monorepo root
-fly deploy --config apps/bot/fly.toml
+flyctl deploy . --config apps/bot/fly.toml
 ```
+
+The `.` sets the build context to the repo root; the `dockerfile = "Dockerfile"`
+in `fly.toml` is resolved relative to `apps/bot/`. Without the `.`, flyctl uses
+`apps/bot/` as the context and the root `COPY pnpm-lock.yaml …` fails.
 
 - App: `pr-assistant` (region `iad`), SQLite on the `/data` volume — unchanged.
 - Secrets stay in Fly (`fly secrets list`); nothing was migrated into the repo.

@@ -6,8 +6,10 @@
 app = 'pr-assistant'
 primary_region = 'iad'
 
+# dockerfile path is relative to THIS file (apps/bot/); the build context is the
+# repo root, supplied at deploy time: `flyctl deploy . --config apps/bot/fly.toml`
 [build]
-  dockerfile = "apps/bot/Dockerfile"
+  dockerfile = "Dockerfile"
 
 # All runtime config (PORT, DATABASE_PATH, PUBLIC_BASE_URL) and secrets
 # (DISCORD_TOKEN, DISCORD_CLIENT_ID, GITHUB_OAUTH_*, TOKEN_ENCRYPTION_KEY) are
