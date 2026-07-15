@@ -7,6 +7,7 @@ import { Commands } from "@/components/sections/commands"
 import { Notifications } from "@/components/sections/notifications"
 import { Security } from "@/components/sections/security"
 import { Faq } from "@/components/sections/faq"
+import { OpenSource } from "@/components/sections/open-source"
 import { Cta } from "@/components/sections/cta"
 
 export default function Page() {
@@ -21,6 +22,7 @@ export default function Page() {
         <Notifications />
         <Security />
         <Faq />
+        <OpenSource />
         <Cta />
       </main>
       <SiteFooter />
