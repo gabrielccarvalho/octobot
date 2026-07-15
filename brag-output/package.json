@@ -1,0 +1,19 @@
+{
+  "name": "brag-output",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "optionalDependencies": {
+    "@img/sharp-darwin-arm64": "^0.35.3",
+    "node-addon-api": "^8.9.0"
+  },
+  "dependencies": {
+    "hyperframes": "^0.7.59"
+  }
+}

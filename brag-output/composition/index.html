@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>OctoBot — GitHub, in your DMs</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --bg: oklch(0.141 0.005 285.823);
+        --bg-deep: oklch(0.08 0.012 286);
+        --fg: oklch(0.985 0 0);
+        --muted: oklch(0.72 0.018 286);
+        --primary: oklch(0.64 0.25 293);
+        --primary-soft: oklch(0.55 0.22 293);
+        --biolume: oklch(0.74 0.13 205);
+        --card: oklch(0.205 0.006 286);
+        --border: oklch(1 0 0 / 0.12);
+        --violet-glow: rgba(150, 110, 255, 0.5);
+        --biolume-glow: rgba(96, 206, 232, 0.55);
+      }
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #05060a;
+      }
+      body {
+        font-family: "Figtree", system-ui, sans-serif;
+        color: var(--fg);
+      }
+      #root { position: relative; overflow: hidden; }
+
+      /* ---------- persistent background ---------- */
+      .bg-fill {
+        position: absolute; inset: 0;
+        background:
+          radial-gradient(120% 90% at 50% -10%, oklch(0.24 0.09 290 / 0.55), transparent 55%),
+          linear-gradient(180deg, var(--bg) 0%, oklch(0.11 0.012 286) 45%, var(--bg-deep) 100%);
+      }
+      .rays { position: absolute; inset: 0; overflow: hidden; opacity: 0.5; }
+      .ray {
+        position: absolute; top: -12%; width: 260px; height: 130%;
+        background: linear-gradient(180deg, rgba(150,120,255,0.16), transparent 70%);
+        filter: blur(22px); transform-origin: top center;
+      }
+      .vignette {
+        position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(120% 100% at 50% 42%, transparent 55%, rgba(0,0,0,0.55) 100%);
+      }
+      .snow-layer { position: absolute; inset: 0; overflow: hidden; }
+      .snow {
+        position: absolute; border-radius: 50%;
+        background: rgba(200, 220, 255, 0.85);
+        box-shadow: 0 0 6px rgba(160, 200, 255, 0.7);
+      }
+
+      /* ---------- clips (full-bleed) ---------- */
+      .clip { position: absolute; inset: 0; }
+      .inner { position: absolute; inset: 0; will-change: opacity, transform; }
+
+      /* ---------- notification noise pills ---------- */
+      .noise-pill {
+        position: absolute; will-change: transform;
+      }
+      .pill-inner {
+        display: inline-block;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 21px; font-weight: 500; white-space: nowrap;
+        color: var(--muted);
+        background: oklch(0.205 0.006 286 / 0.72);
+        border: 1px solid var(--border);
+        border-radius: 999px; padding: 9px 18px;
+        backdrop-filter: blur(4px);
+      }
+
+      /* ---------- headline / text ---------- */
+      .center-wrap {
+        position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+      }
+      .hook-h1 {
+        font-family: "Space Grotesk", sans-serif; font-weight: 700;
+        font-size: 118px; letter-spacing: -0.02em; line-height: 1.0;
+        color: var(--fg);
+        text-shadow: 0 0 60px rgba(0,0,0,0.85), 0 8px 40px rgba(0,0,0,0.6);
+        will-change: transform, opacity;
+      }
+      .sink-label {
+        font-family: "Space Grotesk", sans-serif; font-weight: 500;
+        font-size: 40px; color: var(--muted); letter-spacing: 0.01em;
+      }
+
+      /* ---------- DM cards ---------- */
+      .dm-shell {
+        border-radius: 30px; border: 1px solid oklch(1 0 0 / 0.14);
+        background: oklch(0.17 0.006 286 / 0.72);
+        box-shadow: 0 40px 90px rgba(0,0,0,0.55);
+        backdrop-filter: blur(14px);
+        padding: 12px;
+        position: relative;
+      }
+      .dm-glow {
+        position: absolute; inset: -34px; z-index: -1; border-radius: 44px;
+        background: radial-gradient(60% 60% at 50% 40%, var(--violet-glow), transparent 70%);
+        filter: blur(26px); will-change: opacity;
+      }
+      .dm-head {
+        display: flex; align-items: center; gap: 14px;
+        background: oklch(0.13 0.006 286 / 0.6); border-radius: 20px; padding: 14px 18px;
+      }
+      .avatar {
+        position: relative; width: 40px; height: 40px; border-radius: 50%;
+        background-image: url("assets/img/logo.png"); background-size: cover; background-position: center;
+        flex: 0 0 auto;
+      }
+      .avatar.sm { width: 44px; height: 44px; }
+      .dot {
+        position: absolute; right: -2px; bottom: -2px; width: 13px; height: 13px;
+        border-radius: 50%; background: var(--biolume); border: 3px solid var(--card);
+        box-shadow: 0 0 10px var(--biolume-glow);
+      }
+      .dm-head .name { font-size: 20px; font-weight: 600; line-height: 1.15; }
+      .dm-head .status { font-family: "JetBrains Mono", monospace; font-size: 14px; color: var(--biolume); }
+      .dm-head .channel { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 14px; color: var(--muted); }
+
+      .dm-rows { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+      .dm-row {
+        display: flex; gap: 14px; align-items: flex-start;
+        border: 1px solid var(--border); border-radius: 20px;
+        background: oklch(0.205 0.006 286 / 0.82); padding: 15px 17px;
+        will-change: transform, opacity;
+      }
+      .dm-body { min-width: 0; }
+      .dm-badge {
+        display: inline-block; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary);
+        background: oklch(0.64 0.25 293 / 0.16); border-radius: 6px; padding: 2px 8px; margin-left: 8px;
+      }
+      .dm-name-line { display: flex; align-items: center; }
+      .dm-name-line .n { font-size: 19px; font-weight: 600; }
+      .dm-reason {
+        font-family: "JetBrains Mono", monospace; font-size: 17px; margin-top: 8px; font-weight: 500;
+        color: var(--fg);
+      }
+      .dm-reason.approved { color: var(--biolume); }
+      .dm-reason.changes { color: var(--primary); }
+      .dm-reason .meta { color: var(--muted); font-weight: 400; }
+      .dm-title-line { font-family: "JetBrains Mono", monospace; font-size: 17px; margin-top: 5px; }
+      .dm-title-line .num { color: var(--muted); }
+      .dm-title-line .lnk { color: var(--primary); text-decoration: underline; text-decoration-color: oklch(0.64 0.25 293 / 0.45); text-underline-offset: 3px; }
+
+      /* single surfacing card */
+      #single-wrap { position: absolute; inset: 0; display: grid; place-items: center; }
+      #single-card { width: 720px; }
+
+      /* ---------- stream scene layout ---------- */
+      .stream-grid {
+        position: absolute; inset: 0;
+        display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+        gap: 70px; padding: 0 120px;
+      }
+      .pitch-eyebrow {
+        font-family: "JetBrains Mono", monospace; font-size: 19px; letter-spacing: 0.14em;
+        text-transform: lowercase; color: var(--biolume); margin-bottom: 22px;
+      }
+      .pitch-h1 {
+        font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 84px;
+        letter-spacing: -0.02em; line-height: 1.02; color: var(--fg);
+      }
+      .dm-word { position: relative; color: var(--primary); white-space: nowrap; }
+      .dm-word .ul {
+        position: absolute; left: 0; right: 0; bottom: -6px; height: 5px; border-radius: 999px;
+        background: linear-gradient(90deg, var(--primary), var(--biolume));
+        transform-origin: left center; will-change: transform;
+      }
+      .pitch-sub {
+        margin-top: 30px; font-size: 27px; line-height: 1.5; color: var(--muted); max-width: 560px;
+      }
+      #stream-card { width: 100%; max-width: 640px; justify-self: end; }
+
+      /* ---------- chips scene ---------- */
+      .chips-wrap {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 26px;
+      }
+      .chips-title {
+        font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 46px;
+        color: var(--fg); margin-bottom: 18px; letter-spacing: -0.01em;
+      }
+      .chip {
+        display: flex; align-items: center; gap: 20px;
+        border: 1px solid var(--border); border-radius: 22px;
+        background: oklch(0.19 0.006 286 / 0.8); backdrop-filter: blur(6px);
+        padding: 24px 40px; min-width: 720px;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+        will-change: transform, opacity;
+      }
+      .chip .tick {
+        flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%;
+        background: oklch(0.74 0.13 205 / 0.15);
+        display: grid; place-items: center; color: var(--biolume);
+        box-shadow: 0 0 18px var(--biolume-glow);
+      }
+      .chip .tick svg { width: 22px; height: 22px; }
+      .chip .label { font-size: 34px; font-weight: 500; color: var(--fg); font-family: "Space Grotesk", sans-serif; }
+      .chip .label b { color: var(--biolume); font-weight: 600; }
+
+      /* ---------- CTA scene ---------- */
+      .cta-wrap {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 8px;
+      }
+      #mascot-holder { position: relative; width: 320px; height: 320px; will-change: transform; }
+      #mascot-halo {
+        position: absolute; inset: -40px; border-radius: 50%;
+        background: radial-gradient(50% 50% at 50% 50%, var(--violet-glow), transparent 70%);
+        filter: blur(30px); will-change: opacity, transform;
+      }
+      #mascot {
+        position: absolute; inset: 0;
+        background-image: url("assets/img/octobot.png"); background-size: contain;
+        background-repeat: no-repeat; background-position: center;
+        filter: drop-shadow(0 0 46px var(--biolume-glow));
+      }
+      .cta-bubble {
+        position: absolute; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9), rgba(150,200,255,0.25) 60%, transparent 72%);
+        border: 1px solid rgba(180,220,255,0.35);
+        will-change: transform, opacity;
+      }
+      .cta-h1 {
+        font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 68px;
+        letter-spacing: -0.02em; color: var(--fg); margin-top: 22px; text-align: center;
+        will-change: transform, opacity;
+      }
+      .cta-url {
+        font-family: "JetBrains Mono", monospace; font-size: 34px; margin-top: 14px;
+        color: var(--biolume); letter-spacing: 0.02em; will-change: transform, opacity;
+      }
+      .cta-foot {
+        font-family: "JetBrains Mono", monospace; font-size: 18px; margin-top: 20px;
+        color: var(--muted); will-change: opacity;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="19.8"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- ===================== persistent background ===================== -->
+      <div class="bg-fill"></div>
+      <div class="rays" id="rays" data-layout-allow-overflow="true"></div>
+      <div class="snow-layer" id="snow-layer"></div>
+      <div class="vignette"></div>
+
+      <!-- ===================== CLIP 1: noise pills [0, 8.4] t1 ===================== -->
+      <div id="pills" class="clip" data-start="0" data-duration="8.4" data-track-index="1" data-layout-allow-overflow="true">
+        <div class="inner" id="pills-inner">
+          <div class="noise-pill" style="left:9%;  top:15%" ><span class="pill-inner">🔔 Review requested</span></div>
+          <div class="noise-pill" style="left:28%; top:9%"  ><span class="pill-inner">💬 New comment</span></div>
+          <div class="noise-pill" style="left:71%; top:11%" ><span class="pill-inner">📣 Mentioned</span></div>
+          <div class="noise-pill" style="left:84%; top:21%" ><span class="pill-inner">⚙️ CI activity</span></div>
+          <div class="noise-pill" style="left:12%; top:68%" ><span class="pill-inner">🔀 State changed</span></div>
+          <div class="noise-pill" style="left:69%; top:71%" ><span class="pill-inner">✍️ Activity on your PR</span></div>
+          <div class="noise-pill" style="left:31%; top:79%" ><span class="pill-inner">👥 Team mentioned</span></div>
+          <div class="noise-pill" style="left:88%; top:57%" ><span class="pill-inner">📌 Assigned</span></div>
+          <div class="noise-pill" style="left:11%; top:41%" ><span class="pill-inner">🔖 Subscribed thread</span></div>
+          <div class="noise-pill" style="left:82%; top:40%" ><span class="pill-inner">🛡️ Security alert</span></div>
+          <div class="noise-pill" style="left:47%; top:83%" ><span class="pill-inner">⬆️ New commits pushed</span></div>
+        </div>
+      </div>
+
+      <!-- ===================== CLIP 2: hook headline [0, 4.3] t4 ===================== -->
+      <div id="hook" class="clip" data-start="0" data-duration="4.3" data-track-index="4">
+        <div class="inner" id="hook-inner">
+          <div class="center-wrap">
+            <h1 class="hook-h1" id="hook-h1">GitHub never<br />shuts up.</h1>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CLIP 3: sink label [3.9, 6.4] t3 ===================== -->
+      <div id="sinklab" class="clip" data-start="3.9" data-duration="2.5" data-track-index="3">
+        <div class="inner" id="sinklab-inner">
+          <div class="center-wrap" style="align-items:flex-end; padding-bottom:250px">
+            <div class="sink-label" id="sink-label">The noise sinks.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CLIP 4: single surfacing DM [5.2, 8.7] t5 ===================== -->
+      <div id="single" class="clip" data-start="5.2" data-duration="3.5" data-track-index="5">
+        <div class="inner" id="single-inner">
+          <div id="single-wrap">
+            <div class="dm-shell" id="single-card">
+              <div class="dm-glow" id="single-glow"></div>
+              <div class="dm-rows" style="padding:6px">
+                <div class="dm-row">
+                  <div class="avatar sm"><span class="dot"></span></div>
+                  <div class="dm-body">
+                    <div class="dm-name-line"><span class="n">OctoBot</span><span class="dm-badge">App</span></div>
+                    <div class="dm-reason">🔔 Review requested<span class="meta"> · acme/api · 5 minutes ago</span></div>
+                    <div class="dm-title-line"><span class="num">#128</span> <span class="lnk">Add rate limiting</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CLIP 5: DM stream + tagline [8.2, 12.9] t6 ===================== -->
+      <div id="stream" class="clip" data-start="8.2" data-duration="4.7" data-track-index="6">
+        <div class="inner" id="stream-inner">
+          <div class="stream-grid">
+            <div id="pitch-col">
+              <div class="pitch-eyebrow" id="pitch-eyebrow">github → discord</div>
+              <h1 class="pitch-h1" id="pitch-h1">GitHub, in your <span class="dm-word">DMs<span class="ul" id="dm-ul"></span></span>.</h1>
+              <p class="pitch-sub" id="pitch-sub">The moment something needs you, it lands where you already are.</p>
+            </div>
+            <div class="dm-shell" id="stream-card">
+              <div class="dm-glow" id="stream-glow"></div>
+              <div class="dm-head">
+                <div class="avatar"><span class="dot"></span></div>
+                <div>
+                  <div class="name">OctoBot</div>
+                  <div class="status">online · watching 14 repos</div>
+                </div>
+                <div class="channel">#direct-messages</div>
+              </div>
+              <div class="dm-rows">
+                <div class="dm-row" id="row1">
+                  <div class="avatar sm"><span class="dot"></span></div>
+                  <div class="dm-body">
+                    <div class="dm-name-line"><span class="n">OctoBot</span><span class="dm-badge">App</span></div>
+                    <div class="dm-reason">🔔 Review requested<span class="meta"> · acme/api · 5 minutes ago</span></div>
+                    <div class="dm-title-line"><span class="num">#128</span> <span class="lnk">Add rate limiting</span></div>
+                  </div>
+                </div>
+                <div class="dm-row" id="row2">
+                  <div class="avatar sm"><span class="dot"></span></div>
+                  <div class="dm-body">
+                    <div class="dm-name-line"><span class="n">OctoBot</span><span class="dm-badge">App</span></div>
+                    <div class="dm-reason approved">✅ Your PR was approved<span class="meta"> · acme/web · 2 minutes ago</span></div>
+                    <div class="dm-title-line"><span class="num">#61</span> <span class="lnk">Dark mode</span></div>
+                  </div>
+                </div>
+                <div class="dm-row" id="row3">
+                  <div class="avatar sm"><span class="dot"></span></div>
+                  <div class="dm-body">
+                    <div class="dm-name-line"><span class="n">OctoBot</span><span class="dm-badge">App</span></div>
+                    <div class="dm-reason">📣 Mentioned<span class="meta"> · acme/infra · just now</span></div>
+                    <div class="dm-title-line"><span class="num">#402</span> <span class="lnk">Bump node to 22 in CI</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CLIP 6: value chips [12.6, 16.3] t7 ===================== -->
+      <div id="chips" class="clip" data-start="12.6" data-duration="3.7" data-track-index="7">
+        <div class="inner" id="chips-inner">
+          <div class="chips-wrap">
+            <div class="chips-title" id="chips-title">No setup. No noise. No misses.</div>
+            <div class="chip" id="chip1">
+              <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="label">Every repo you can touch — <b>public &amp; private</b></div>
+            </div>
+            <div class="chip" id="chip2">
+              <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="label">PR <b>verdicts</b>, not pings</div>
+            </div>
+            <div class="chip" id="chip3">
+              <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="label">One click. <b>No webhooks.</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CLIP 7: CTA / surface [15.8, 19.8] t8 ===================== -->
+      <div id="cta" class="clip" data-start="15.8" data-duration="4.0" data-track-index="8">
+        <div class="inner" id="cta-inner">
+          <div class="cta-wrap">
+            <div id="mascot-holder">
+              <div id="mascot-halo"></div>
+              <div id="mascot"></div>
+            </div>
+            <h1 class="cta-h1" id="cta-h1">Stop refreshing the notifications tab.</h1>
+            <div class="cta-url" id="cta-url">octobot.dev</div>
+            <div class="cta-foot" id="cta-foot">Join, run /link, done · read-only · disconnect anytime</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== audio ===================== -->
+      <audio id="music" src="assets/music/track.mp3" data-start="0" data-duration="19.8" data-track-index="20" data-volume="0.82"></audio>
+      <audio id="sfx-sink"    src="assets/sfx/sink.ogg"    data-start="3.70"  data-track-index="21" data-volume="0.5"></audio>
+      <audio id="sfx-surface" src="assets/sfx/surface.ogg" data-start="5.80"  data-track-index="22" data-volume="0.6"></audio>
+      <audio id="sfx-card1"   src="assets/sfx/card1.ogg"   data-start="8.96"  data-track-index="23" data-volume="0.5"></audio>
+      <audio id="sfx-card2"   src="assets/sfx/card2.ogg"   data-start="9.50"  data-track-index="24" data-volume="0.5"></audio>
+      <audio id="sfx-tick1"   src="assets/sfx/tick1.ogg"   data-start="12.65" data-track-index="25" data-volume="0.45"></audio>
+      <audio id="sfx-tick2"   src="assets/sfx/tick2.ogg"   data-start="13.70" data-track-index="26" data-volume="0.45"></audio>
+      <audio id="sfx-tick3"   src="assets/sfx/tick3.ogg"   data-start="14.76" data-track-index="27" data-volume="0.45"></audio>
+      <audio id="sfx-rise"    src="assets/sfx/rise.ogg"    data-start="16.00" data-track-index="28" data-volume="0.5"></audio>
+      <audio id="sfx-payoff"  src="assets/sfx/payoff.ogg"  data-start="17.91" data-track-index="29" data-volume="0.6"></audio>
+    </div>
+
+    <script>
+      // ---------- deterministic PRNG (seeded) ----------
+      function mulberry32(a) {
+        return function () {
+          a |= 0; a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      // ---------- build persistent decoratives ----------
+      (function buildDecor() {
+        const rnd = mulberry32(1337);
+        // light rays
+        const rays = document.getElementById("rays");
+        const rayX = [12, 34, 58, 79, 92];
+        rayX.forEach((x, i) => {
+          const r = document.createElement("div");
+          r.className = "ray";
+          r.style.left = x + "%";
+          r.style.transform = "rotate(" + (i % 2 ? 6 : -6) + "deg)";
+          r.dataset.i = i;
+          rays.appendChild(r);
+        });
+        // marine snow
+        const snow = document.getElementById("snow-layer");
+        for (let i = 0; i < 22; i++) {
+          const s = document.createElement("div");
+          s.className = "snow";
+          const size = 2 + Math.floor(rnd() * 4);
+          s.style.width = size + "px";
+          s.style.height = size + "px";
+          s.style.left = (rnd() * 100).toFixed(2) + "%";
+          s.style.top = (rnd() * 100).toFixed(2) + "%";
+          s.style.opacity = (0.05 + rnd() * 0.18).toFixed(3);
+          snow.appendChild(s);
+        }
+        // CTA bubbles
+        const holder = document.getElementById("mascot-holder");
+        const bubbles = [
+          [22, 6, 3.8], [46, 9, 4.6], [70, 5, 3.4], [34, 6, 5.0], [60, 8, 4.2], [82, 5, 4.8], [14, 4, 4.0],
+        ];
+        bubbles.forEach((b, i) => {
+          const el = document.createElement("div");
+          el.className = "cta-bubble";
+          el.style.left = b[0] + "%";
+          el.style.width = b[1] + "px";
+          el.style.height = b[1] + "px";
+          el.style.bottom = "40px";
+          el.dataset.i = i;
+          holder.appendChild(el);
+        });
+      })();
+
+      // ---------- timeline ----------
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const DUR = 19.8;
+      const finiteReps = (cycle, span) => Math.max(0, Math.floor(span / cycle) - 1);
+
+      // ===== persistent ambient (finite repeats) =====
+      gsap.utils.toArray(".snow").forEach((el, i) => {
+        const cyc = 3.0 + (i % 5) * 0.5;
+        tl.to(el, { y: 26 + (i % 4) * 10, duration: cyc, ease: "sine.inOut",
+          repeat: finiteReps(cyc, DUR), yoyo: true }, (i % 6) * 0.4);
+      });
+      gsap.utils.toArray(".ray").forEach((el, i) => {
+        const cyc = 4.5 + i * 0.6;
+        tl.to(el, { opacity: "-=0.25", duration: cyc, ease: "sine.inOut",
+          repeat: finiteReps(cyc, DUR), yoyo: true }, i * 0.5);
+      });
+
+      // ===== CLIP 1: noise pills =====
+      tl.fromTo("#pills-inner", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0);
+      tl.set(".noise-pill", { xPercent: -50, yPercent: -50 }, 0);
+      // subtle drift on each pill's inner span
+      gsap.utils.toArray(".pill-inner").forEach((el, i) => {
+        const cyc = 1.6 + (i % 4) * 0.35;
+        tl.to(el, { y: (i % 2 ? 10 : -10), x: (i % 3 ? 6 : -6), duration: cyc, ease: "sine.inOut",
+          repeat: finiteReps(cyc, 3.6), yoyo: true }, (i % 5) * 0.2);
+      });
+      // THE SINK — all pills drop + fade  // beat-locked: 3.70s (strong cue)
+      tl.fromTo(".noise-pill",
+        { xPercent: -50, yPercent: -50, y: 0, opacity: 1 },
+        { xPercent: -50, yPercent: -50, y: 780, opacity: 0, duration: 1.7, ease: "power2.in", stagger: 0.035 }, 3.70);
+      tl.to("#pills-inner", { opacity: 0, duration: 0.8 }, 4.9);
+
+      // ===== CLIP 2: hook headline =====
+      // slam in, settled by ~1.60 (beat-locked strong cue)
+      tl.fromTo("#hook-h1", { opacity: 0, scale: 1.08, y: 34 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "power3.out" }, 1.05); // beat-locked: 1.60s
+      tl.to("#hook-inner", { opacity: 0, duration: 0.4, ease: "power2.in" }, 3.85);
+
+      // ===== CLIP 3: sink label =====
+      tl.fromTo("#sinklab-inner", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 4.05);
+      tl.fromTo("#sink-label", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.15);
+      tl.to("#sinklab-inner", { opacity: 0, duration: 0.45, ease: "power2.in" }, 5.75);
+
+      // ===== CLIP 4: single surfacing DM =====
+      tl.set("#single-inner", { opacity: 0 }, 5.2);
+      // rise up + surface, lands ~5.80 (beat-locked strong cue)
+      tl.fromTo("#single-inner", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 5.35);
+      tl.fromTo("#single-card", { opacity: 0, y: 120, scale: 0.94 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: "power3.out" }, 5.25); // beat-locked: 5.80s
+      tl.fromTo("#single-glow", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "power2.out" }, 5.5);
+      tl.to("#single-inner", { opacity: 0, duration: 0.45, ease: "power2.in" }, 8.35);
+
+      // ===== CLIP 5: DM stream + tagline =====
+      tl.fromTo("#stream-inner", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 8.25);
+      tl.fromTo("#stream-card", { opacity: 0, y: 60, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "power3.out" }, 8.35);
+      tl.fromTo("#stream-glow", { opacity: 0.4 }, { opacity: 1, duration: 0.6 }, 8.5);
+      // row1 present with card; rows 2 & 3 arrive on the beat grid
+      tl.set("#row2", { opacity: 0 }, 8.35);
+      tl.set("#row3", { opacity: 0 }, 8.35);
+      tl.fromTo("#row2", { opacity: 0, y: 26, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 8.96); // beat-grid: 8.96s
+      tl.fromTo("#row3", { opacity: 0, y: 26, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 9.50); // beat-grid: 9.50s
+      // tagline
+      tl.fromTo("#pitch-eyebrow", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 8.7);
+      tl.fromTo("#pitch-h1", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 8.85);
+      tl.fromTo("#dm-ul", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, 9.55);
+      tl.fromTo("#pitch-sub", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 9.35);
+      // musical breathing on the card glow (beat-synced pulse, finite)
+      tl.to("#stream-glow", { opacity: 0.6, duration: 0.52, ease: "sine.inOut", repeat: 5, yoyo: true }, 9.7);
+      tl.to("#stream-inner", { opacity: 0, duration: 0.45, ease: "power2.in" }, 12.65);
+
+      // ===== CLIP 6: value chips =====
+      tl.fromTo("#chips-inner", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 12.55);
+      tl.fromTo("#chips-title", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 12.6);
+      // chips reveal every-other-beat then hold  // beat-grid: 12.65 / 13.70 / 14.76
+      const chipT = [12.65, 13.70, 14.76];
+      chipT.forEach((t, i) => {
+        tl.fromTo("#chip" + (i + 1), { opacity: 0, y: 30, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.4)" }, t);
+      });
+      tl.to("#chips-inner", { opacity: 0, duration: 0.4, ease: "power2.in" }, 15.85);
+
+      // ===== CLIP 7: CTA / surface =====
+      tl.fromTo("#cta-inner", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 15.85);
+      // mascot rises from the deep
+      tl.fromTo("#mascot-holder", { opacity: 0, y: 150, scale: 0.9 },
+        { opacity: 1, y: 0, scale: 1, duration: 1.1, ease: "power3.out" }, 15.9);
+      tl.fromTo("#mascot-halo", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 1.0, ease: "power2.out" }, 16.1);
+      // gentle bob (finite)
+      tl.to("#mascot-holder", { y: -14, duration: 1.6, ease: "sine.inOut", repeat: 1, yoyo: true }, 17.1);
+      // halo breathing (beat-synced pulse, finite)
+      tl.to("#mascot-halo", { opacity: 0.65, scale: 1.06, duration: 0.55, ease: "sine.inOut", repeat: 3, yoyo: true }, 17.25);
+      // bubbles rise
+      gsap.utils.toArray(".cta-bubble").forEach((el, i) => {
+        const cyc = 2.4 + (i % 4) * 0.5;
+        tl.fromTo(el, { opacity: 0, y: 0 }, { opacity: 0.9, y: -190 - (i % 3) * 40, duration: cyc, ease: "sine.out",
+          repeat: finiteReps(cyc, 3.6), yoyo: false }, 16.0 + (i % 5) * 0.3);
+      });
+      // headline + url land ~17.91 (beat-locked strong cue)
+      tl.fromTo("#cta-h1", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 17.1);
+      tl.fromTo("#cta-url", { opacity: 0, y: 20, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, 17.91); // beat-locked: 17.91s
+      tl.fromTo("#cta-foot", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 18.5);
+
+      // ===== music fade under the payoff =====
+      const music = document.getElementById("music");
+      if (music) tl.to(music, { volume: 0, duration: 1.3, ease: "power1.in" }, 18.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1 @@
+GitHub never shuts up. OctoBot only taps you when it actually matters — one Discord DM, every repo your account can touch, public & private. No per-repo webhooks, read-only, disconnect anytime. 🐙 octobot.dev
