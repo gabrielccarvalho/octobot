@@ -7,6 +7,9 @@ import {
   LAST_UPDATED,
   DISCORD_COMMUNITY_URL,
   DISCORD_INVITE_URL,
+  GITHUB_REPO_URL,
+  GITHUB_ISSUES_URL,
+  GITHUB_CONTRIBUTING_URL,
 } from "@/lib/content"
 
 export function SiteFooter() {
@@ -22,7 +25,7 @@ export function SiteFooter() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-4">
             <FooterCol title="Product">
               {NAV_LINKS.map((l) => (
                 <FooterLink key={l.href} href={l.href}>
@@ -38,6 +41,11 @@ export function SiteFooter() {
               <FooterLink href={DISCORD_COMMUNITY_URL}>Join the community</FooterLink>
               <FooterLink href={DISCORD_INVITE_URL}>Add to your server</FooterLink>
               <FooterLink href="#how">How it works</FooterLink>
+            </FooterCol>
+            <FooterCol title="Source">
+              <FooterLink href={GITHUB_REPO_URL}>GitHub</FooterLink>
+              <FooterLink href={GITHUB_ISSUES_URL}>Issues</FooterLink>
+              <FooterLink href={GITHUB_CONTRIBUTING_URL}>Contributing</FooterLink>
             </FooterCol>
           </div>
         </div>
