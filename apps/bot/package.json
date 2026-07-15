@@ -1,5 +1,5 @@
 {
-  "name": "discord-github-pr",
+  "name": "bot",
   "version": "1.0.0",
   "private": true,
   "description": "Discord bot that DMs you when a GitHub PR needs your review.",
