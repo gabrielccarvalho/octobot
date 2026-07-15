@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import { Geist_Mono, Figtree, Space_Grotesk } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -72,6 +74,8 @@ export default function RootLayout({
           <div className="atmosphere" aria-hidden="true" />
           {children}
         </ThemeProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
