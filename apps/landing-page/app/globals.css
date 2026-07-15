@@ -202,9 +202,22 @@
   animation: biolume-pulse 2.4s ease-in-out infinite;
 }
 
+/* mascot idle motion */
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes mascot-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+.mascot-float { animation: mascot-float 5s ease-in-out infinite; }
+.mascot-blink { transform-box: fill-box; transform-origin: center; animation: mascot-blink 6s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .biolume-dot { animation: none; }
+  .mascot-float, .mascot-blink { animation: none !important; }
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
