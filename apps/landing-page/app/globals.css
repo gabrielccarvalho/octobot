@@ -139,49 +139,42 @@
     }
 }
 
-/* ---- OctoBot: deep-sea cosmos atmosphere ---------------------------------- */
-.atmosphere {
-  position: fixed;
-  inset: 0;
-  z-index: -10;
-  overflow: hidden;
-  pointer-events: none;
-}
-/* nebula clouds */
-.atmosphere::before {
-  content: "";
-  position: absolute;
-  inset: -25%;
+/* ---- The Dive: scroll-linked depth backdrop ------------------------------- */
+/* Surface layer: what you see at the top of the page. */
+.deep-surface {
   background:
-    radial-gradient(38% 38% at 12% 8%, color-mix(in oklch, var(--primary) 40%, transparent), transparent 70%),
-    radial-gradient(42% 42% at 88% 16%, color-mix(in oklch, var(--biolume) 22%, transparent), transparent 72%),
-    radial-gradient(55% 45% at 50% 108%, color-mix(in oklch, var(--primary) 30%, transparent), transparent 70%);
-  filter: blur(48px);
-  opacity: 0.28;
+    radial-gradient(70% 55% at 50% 0%, color-mix(in oklch, var(--biolume) 16%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 12% 12%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 72%),
+    linear-gradient(to bottom, color-mix(in oklch, var(--primary) 6%, var(--background)), var(--background) 60%);
 }
-.dark .atmosphere::before {
-  opacity: 0.5;
+.dark .deep-surface {
+  background:
+    radial-gradient(70% 55% at 50% 0%, color-mix(in oklch, var(--biolume) 12%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 12% 12%, color-mix(in oklch, var(--primary) 24%, transparent), transparent 72%),
+    linear-gradient(to bottom, oklch(0.2 0.04 265), var(--background) 65%);
 }
-/* starfield — dark mode only */
-.atmosphere::after {
-  content: "";
+/* Abyss layer: crossfaded over the surface as the user scrolls deeper. */
+.deep-abyss {
+  background: linear-gradient(to bottom, oklch(0.55 0.08 220), oklch(0.32 0.07 215));
+}
+.dark .deep-abyss {
+  background: linear-gradient(to bottom, oklch(0.13 0.03 255), oklch(0.08 0.02 250));
+}
+
+/* Marine snow: drifting specks, mounted in dark mode as depth increases. */
+.marine-snow-speck {
   position: absolute;
-  inset: 0;
-  opacity: 0;
-  background-image:
-    radial-gradient(1.2px 1.2px at 20% 30%, color-mix(in oklch, var(--foreground) 70%, transparent), transparent),
-    radial-gradient(1px 1px at 70% 20%, color-mix(in oklch, var(--foreground) 55%, transparent), transparent),
-    radial-gradient(1.4px 1.4px at 40% 70%, color-mix(in oklch, var(--biolume) 80%, transparent), transparent),
-    radial-gradient(1px 1px at 85% 65%, color-mix(in oklch, var(--foreground) 50%, transparent), transparent),
-    radial-gradient(1px 1px at 55% 45%, color-mix(in oklch, var(--foreground) 45%, transparent), transparent),
-    radial-gradient(1.3px 1.3px at 10% 85%, color-mix(in oklch, var(--foreground) 60%, transparent), transparent),
-    radial-gradient(1px 1px at 92% 92%, color-mix(in oklch, var(--biolume) 70%, transparent), transparent),
-    radial-gradient(1px 1px at 33% 12%, color-mix(in oklch, var(--foreground) 55%, transparent), transparent);
-  background-repeat: repeat;
-  background-size: 320px 320px, 420px 420px, 500px 500px, 380px 380px, 460px 460px, 340px 340px, 520px 520px, 300px 300px;
+  top: -2%;
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--biolume) 65%, transparent);
+  animation-name: snow-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
-.dark .atmosphere::after {
-  opacity: 0.7;
+@keyframes snow-fall {
+  from { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(52vh) translateX(10px); }
+  to { transform: translateY(105vh) translateX(-6px); }
 }
 
 /* soft top grid line texture behind the fold */

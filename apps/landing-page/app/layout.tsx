@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 import "./globals.css"
+import { DeepBackground } from "@/components/deep-background"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
@@ -71,7 +72,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <div className="atmosphere" aria-hidden="true" />
+          <DeepBackground />
           {children}
         </ThemeProvider>
         <Analytics />
