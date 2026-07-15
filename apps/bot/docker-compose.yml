@@ -1,0 +1,17 @@
+services:
+  bot:
+    build: .
+    # Loads DISCORD_TOKEN, DISCORD_CLIENT_ID, GITHUB_WEBHOOK_SECRET,
+    # DATABASE_PATH, PORT (and optional ALLOWED_OWNERS) from .env.
+    env_file: .env
+    ports:
+      # Host:container — the app binds 0.0.0.0:$PORT inside the container.
+      - "${PORT:-3000}:${PORT:-3000}"
+    volumes:
+      # Persist the SQLite file. DATABASE_PATH=./data/bot.sqlite resolves to
+      # /app/data/bot.sqlite inside the container (WORKDIR is /app).
+      - botdata:/app/data
+    restart: unless-stopped
+
+volumes:
+  botdata:
