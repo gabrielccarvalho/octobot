@@ -213,6 +213,22 @@
   animation: wave-drift 22s linear infinite;
 }
 
+/* Abyss CTA panel: deliberately deep in both themes. */
+.abyss-panel {
+  background:
+    radial-gradient(60% 55% at 50% 28%, color-mix(in oklch, var(--biolume) 12%, transparent), transparent 70%),
+    linear-gradient(to bottom, oklch(0.18 0.05 250), oklch(0.1 0.03 250));
+}
+
+/* Idle mascot bob. */
+@keyframes mascot-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+.mascot-bob {
+  animation: mascot-bob 6s ease-in-out infinite;
+}
+
 /* When scripting is unavailable, motion never runs — force-show anything it
    would have revealed. */
 @media (scripting: none) {
