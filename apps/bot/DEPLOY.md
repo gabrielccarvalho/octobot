@@ -14,8 +14,8 @@ The `.` sets the build context to the repo root; the `dockerfile = "Dockerfile"`
 in `fly.toml` is resolved relative to `apps/bot/`. Without the `.`, flyctl uses
 `apps/bot/` as the context and the root `COPY pnpm-lock.yaml …` fails.
 
-- App: `pr-assistant` (region `iad`), SQLite on the `/data` volume — unchanged.
-- Secrets stay in Fly (`fly secrets list`); nothing was migrated into the repo.
+- App: `octobot-dev` (region `iad`), SQLite on the `/data` volume.
+- Secrets stay in Fly (`flyctl secrets list -a octobot-dev`); none are in the repo.
 
 ## Runtime configuration
 
@@ -39,16 +39,19 @@ rotate it while users are linked — it decrypts their stored GitHub tokens.
 ## Custom domain (api.octobot.dev)
 
 The bot is served at `https://api.octobot.dev` (apex `octobot.dev` is the Vercel
-landing site). To wire it:
+landing site, so the bot uses the `api` subdomain). Wiring, in order:
 
-```bash
-fly certs add api.octobot.dev --config apps/bot/fly.toml
-```
-
-Then at the `octobot.dev` DNS provider add a `CNAME api → pr-assistant.fly.dev`
-(plus the `_acme-challenge` record Fly prints). Finally set the GitHub OAuth App
-**Authorization callback URL** to `https://api.octobot.dev/oauth/callback` — it
-must exactly match `PUBLIC_BASE_URL` + `/oauth/callback` or `/link` fails.
+1. Get the app's IPs: `flyctl ips list -a octobot-dev`.
+2. In the `octobot.dev` DNS (Vercel), add **A** + **AAAA** records for `api`
+   pointing at those IPs. (Use A/AAAA, not a CNAME — Vercel DNS won't allow a
+   CNAME on a name that also has A/AAAA records.)
+3. `flyctl certs add api.octobot.dev -a octobot-dev`, then wait for
+   `flyctl certs show api.octobot.dev -a octobot-dev` to read **Issued** (Fly
+   validates over HTTP once DNS resolves to it — no `_acme-challenge` needed).
+4. Set the GitHub OAuth App **Authorization callback URL** to
+   `https://api.octobot.dev/oauth/callback` — it must exactly match
+   `PUBLIC_BASE_URL` + `/oauth/callback`, or `/link` never completes (no user
+   row is written).
 
 ## Landing page (Vercel)
 
