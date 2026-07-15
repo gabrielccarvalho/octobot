@@ -1,28 +1,28 @@
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { DepthGauge } from "@/components/depth-gauge"
 import { Hero } from "@/components/sections/hero"
-import { Features } from "@/components/sections/features"
+import { Noise } from "@/components/sections/noise"
 import { HowItWorks } from "@/components/sections/how-it-works"
-import { Commands } from "@/components/sections/commands"
-import { Notifications } from "@/components/sections/notifications"
-import { Security } from "@/components/sections/security"
+import { ReachesYou } from "@/components/sections/reaches-you"
+import { CommandsMenu } from "@/components/sections/commands-menu"
+import { Trust } from "@/components/sections/trust"
 import { Faq } from "@/components/sections/faq"
-import { OpenSource } from "@/components/sections/open-source"
 import { Cta } from "@/components/sections/cta"
 
 export default function Page() {
   return (
     <>
       <SiteHeader />
+      <DepthGauge />
       <main>
         <Hero />
-        <Features />
+        <Noise />
         <HowItWorks />
-        <Commands />
-        <Notifications />
-        <Security />
+        <ReachesYou />
+        <CommandsMenu />
+        <Trust />
         <Faq />
-        <OpenSource />
         <Cta />
       </main>
       <SiteFooter />

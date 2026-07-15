@@ -43,13 +43,6 @@ export const JURISDICTION_FORUM = "the Comarca de São Paulo/SP"
 
 export const LAST_UPDATED = "July 14, 2026"
 
-export const NAV_LINKS = [
-  { label: "Features", href: "#features" },
-  { label: "How it works", href: "#how" },
-  { label: "Commands", href: "#commands" },
-  { label: "FAQ", href: "#faq" },
-] as const
-
 // --- Hero DM stream (the signature artifact) --------------------------------
 
 export type DmMessage = {

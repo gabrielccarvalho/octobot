@@ -2,7 +2,6 @@ import Link from "next/link"
 
 import { Logo } from "@/components/logo"
 import {
-  NAV_LINKS,
   COMPANY_NAME,
   LAST_UPDATED,
   DISCORD_COMMUNITY_URL,
@@ -27,11 +26,10 @@ export function SiteFooter() {
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-4">
             <FooterCol title="Product">
-              {NAV_LINKS.map((l) => (
-                <FooterLink key={l.href} href={l.href}>
-                  {l.label}
-                </FooterLink>
-              ))}
+              <FooterLink href="#reaches-you">Features</FooterLink>
+              <FooterLink href="#how">How it works</FooterLink>
+              <FooterLink href="#commands">Commands</FooterLink>
+              <FooterLink href="#faq">FAQ</FooterLink>
             </FooterCol>
             <FooterCol title="Legal">
               <FooterLink href="/terms">Terms of Service</FooterLink>
