@@ -4,7 +4,12 @@ import { AddToDiscord } from "@/components/add-to-discord"
 import { DmCard } from "@/components/dm-message"
 import { Icon } from "@/components/icon"
 import { Eyebrow } from "@/components/section"
-import { HERO_MESSAGES, VALUE_POINTS } from "@/lib/content"
+import {
+  HERO_MESSAGES,
+  VALUE_POINTS,
+  DISCORD_COMMUNITY_URL,
+  DISCORD_INVITE_URL,
+} from "@/lib/content"
 
 export function Hero() {
   return (
@@ -38,7 +43,9 @@ export function Hero() {
           </p>
 
           <div className="animate-in fade-in slide-in-from-bottom-4 mt-8 flex flex-wrap items-center gap-3 delay-200 duration-700">
-            <AddToDiscord size="hero" />
+            <AddToDiscord size="hero" href={DISCORD_COMMUNITY_URL}>
+              Join the community
+            </AddToDiscord>
             <a
               href="#how"
               className="inline-flex h-12 items-center gap-2 rounded-xl border border-border bg-background/40 px-5 text-base font-medium backdrop-blur-sm transition-colors hover:bg-muted"
@@ -47,9 +54,20 @@ export function Hero() {
             </a>
           </div>
 
-          <p className="animate-in fade-in mt-5 flex items-center gap-2 font-mono text-xs text-muted-foreground delay-300 duration-700">
+          <p className="animate-in fade-in mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted-foreground delay-300 duration-700">
             <Icon name="FlashIcon" className="size-3.5 text-biolume" strokeWidth={2} />
-            One click to connect · read-only access · disconnect anytime
+            <span>Join, run /link, done · read-only · disconnect anytime</span>
+            <span className="hidden text-border sm:inline" aria-hidden>
+              ·
+            </span>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-foreground/70 underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
+            >
+              or add OctoBot to your own server
+            </a>
           </p>
         </div>
 

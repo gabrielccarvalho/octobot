@@ -9,6 +9,12 @@
 /** Discord install / OAuth authorization URL for the OctoBot application. */
 export const DISCORD_INVITE_URL =
   "https://discord.com/oauth2/authorize?client_id=1526667638455926794"
+/**
+ * Community server invite. This is the primary activation path: joining puts
+ * the user in a server with OctoBot, giving them the mutual guild required to
+ * DM the bot and receive its notifications.
+ */
+export const DISCORD_COMMUNITY_URL = "https://discord.gg/dfJPuhDGu6"
 export const CONTACT_EMAIL = "gabrielccarvalhopro@gmail.com"
 
 /** Brand / short name used throughout the copy. */

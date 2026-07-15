@@ -1,7 +1,13 @@
 import Link from "next/link"
 
 import { Logo } from "@/components/logo"
-import { NAV_LINKS, COMPANY_NAME, LAST_UPDATED } from "@/lib/content"
+import {
+  NAV_LINKS,
+  COMPANY_NAME,
+  LAST_UPDATED,
+  DISCORD_COMMUNITY_URL,
+  DISCORD_INVITE_URL,
+} from "@/lib/content"
 
 export function SiteFooter() {
   return (
@@ -29,7 +35,8 @@ export function SiteFooter() {
               <FooterLink href="/privacy">Privacy Policy</FooterLink>
             </FooterCol>
             <FooterCol title="Get started">
-              <FooterLink href="#add-to-discord">Add to Discord</FooterLink>
+              <FooterLink href={DISCORD_COMMUNITY_URL}>Join the community</FooterLink>
+              <FooterLink href={DISCORD_INVITE_URL}>Add to your server</FooterLink>
               <FooterLink href="#how">How it works</FooterLink>
             </FooterCol>
           </div>
@@ -61,14 +68,21 @@ function FooterCol({ title, children }: { title: string; children: React.ReactNo
 }
 
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const external = href.startsWith("http")
+  const className =
+    "text-sm text-muted-foreground transition-colors hover:text-foreground"
+
   return (
     <li>
-      <Link
-        href={href}
-        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        {children}
-      </Link>
+      {external ? (
+        <a href={href} target="_blank" rel="noreferrer noopener" className={className}>
+          {children}
+        </a>
+      ) : (
+        <Link href={href} className={className}>
+          {children}
+        </Link>
+      )}
     </li>
   )
 }

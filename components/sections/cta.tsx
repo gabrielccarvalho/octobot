@@ -1,6 +1,7 @@
 import Image from "next/image"
 
 import { AddToDiscord } from "@/components/add-to-discord"
+import { DISCORD_COMMUNITY_URL } from "@/lib/content"
 
 export function Cta() {
   return (
@@ -23,16 +24,18 @@ export function Cta() {
           Stop refreshing the notifications tab
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground text-pretty sm:text-lg">
-          Add OctoBot, run <code className="font-mono text-foreground">/link</code>, and
+          Join the community, run <code className="font-mono text-foreground">/link</code>, and
           the next time GitHub needs you, you&apos;ll hear about it where you
           already are.
         </p>
 
         <div className="mt-8 flex justify-center">
-          <AddToDiscord size="hero" />
+          <AddToDiscord size="hero" href={DISCORD_COMMUNITY_URL}>
+            Join the community
+          </AddToDiscord>
         </div>
         <p className="mt-4 font-mono text-xs text-muted-foreground">
-          Connects in one click · read-only access · disconnect anytime
+          Join, run /link, done · read-only access · disconnect anytime
         </p>
       </div>
     </section>

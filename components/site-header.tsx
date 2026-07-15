@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { AddToDiscord } from "@/components/add-to-discord"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/icon"
-import { NAV_LINKS } from "@/lib/content"
+import { NAV_LINKS, DISCORD_COMMUNITY_URL } from "@/lib/content"
 import { cn } from "@/lib/utils"
 
 export function SiteHeader() {
@@ -34,7 +34,7 @@ export function SiteHeader() {
           <div className="flex items-center gap-1.5">
             <ThemeToggle />
             <div className="hidden sm:block">
-              <AddToDiscord />
+              <AddToDiscord href={DISCORD_COMMUNITY_URL}>Join community</AddToDiscord>
             </div>
             <Button
               variant="ghost"
@@ -68,7 +68,9 @@ export function SiteHeader() {
               </a>
             ))}
             <div className="mt-1 px-1">
-              <AddToDiscord className="w-full" />
+              <AddToDiscord href={DISCORD_COMMUNITY_URL} className="w-full">
+                Join community
+              </AddToDiscord>
             </div>
           </div>
         </div>
