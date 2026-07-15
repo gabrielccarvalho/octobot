@@ -214,10 +214,19 @@
 .mascot-float { animation: mascot-float 5s ease-in-out infinite; }
 .mascot-blink { transform-box: fill-box; transform-origin: center; animation: mascot-blink 6s ease-in-out infinite; }
 
+/* scroll-triggered reveal animations */
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+.reveal-run { animation: reveal-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .biolume-dot { animation: none; }
   .mascot-float, .mascot-blink { animation: none !important; }
+  .reveal-pending { opacity: 1 !important; }
+  .reveal-run { animation: none !important; }
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
