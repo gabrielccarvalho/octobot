@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { Bubbles } from "@/components/bubbles"
 import { DepthGauge } from "@/components/depth-gauge"
 import { Waterline } from "@/components/waterline"
 import { Hero } from "@/components/sections/hero"
@@ -19,13 +20,18 @@ export default function Page() {
       <main>
         <Hero />
         <Waterline className="mt-6" />
-        <Noise />
-        <HowItWorks />
-        <ReachesYou />
-        <CommandsMenu />
-        <Trust />
-        <Faq />
-        <Cta />
+        {/* Everything below the waterline is underwater: bubbles rise from
+            the mascot in the abyss and pop at the surface above. */}
+        <div className="relative">
+          <Bubbles />
+          <Noise />
+          <HowItWorks />
+          <ReachesYou />
+          <CommandsMenu />
+          <Trust />
+          <Faq />
+          <Cta />
+        </div>
       </main>
       <SiteFooter />
     </>

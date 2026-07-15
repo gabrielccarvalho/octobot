@@ -231,6 +231,33 @@
   animation: rays-shimmer 7s ease-in-out infinite alternate;
 }
 
+/* Bubbles: rise about a viewport, wobbling, then dissolve. The column layer
+   is clipped at the waterline, so survivors pop exactly at the surface. */
+@keyframes bubble-rise {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  8% { opacity: 0.85; }
+  50% { transform: translateY(-62vh) translateX(14px); }
+  92% { opacity: 0.6; }
+  100% { transform: translateY(-125vh) translateX(-8px); opacity: 0; }
+}
+@keyframes bubble-rise-sm {
+  0% { transform: translateY(0) translateX(0) scale(0.6); opacity: 0; }
+  12% { opacity: 0.9; }
+  70% { transform: translateY(-190px) translateX(10px) scale(0.95); opacity: 0.75; }
+  100% { transform: translateY(-280px) translateX(-6px) scale(1); opacity: 0; }
+}
+.bubble {
+  position: absolute;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--biolume) 45%, transparent);
+  background: radial-gradient(circle at 32% 30%, color-mix(in oklch, var(--biolume) 35%, transparent), transparent 65%);
+  opacity: 0;
+  animation: bubble-rise linear infinite;
+}
+.bubble-sm {
+  animation: bubble-rise-sm linear infinite;
+}
+
 /* Abyss CTA panel: deliberately deep in both themes. */
 .abyss-panel {
   background:

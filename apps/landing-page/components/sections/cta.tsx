@@ -38,16 +38,43 @@ export function Cta() {
         )}
 
         <div className="mx-auto flex justify-center">
-          <Image
-            src="/mascot/octobot.png"
-            alt="OctoBot"
-            width={256}
-            height={256}
-            className={
-              "size-44 rounded-3xl drop-shadow-[0_0_56px_color-mix(in_oklch,var(--biolume)_50%,transparent)] sm:size-52" +
-              (reduce ? "" : " mascot-bob")
-            }
-          />
+          <div className="relative">
+            {/* Bubbles coming off the mascot, rising toward the panel top */}
+            {!reduce && (
+              <div aria-hidden>
+                {[
+                  { left: "22%", size: 6, duration: 3.8, delay: 0 },
+                  { left: "48%", size: 9, duration: 4.6, delay: 1.2 },
+                  { left: "70%", size: 5, duration: 3.4, delay: 2.2 },
+                  { left: "36%", size: 6, duration: 5, delay: 2.8 },
+                  { left: "60%", size: 8, duration: 4.2, delay: 0.6 },
+                  { left: "82%", size: 5, duration: 4.8, delay: 1.8 },
+                ].map((b, i) => (
+                  <span
+                    key={i}
+                    className="bubble bubble-sm top-6"
+                    style={{
+                      left: b.left,
+                      width: b.size,
+                      height: b.size,
+                      animationDuration: `${b.duration}s`,
+                      animationDelay: `${b.delay}s`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <Image
+              src="/mascot/octobot.png"
+              alt="OctoBot"
+              width={256}
+              height={256}
+              className={
+                "size-44 rounded-3xl drop-shadow-[0_0_56px_color-mix(in_oklch,var(--biolume)_50%,transparent)] sm:size-52" +
+                (reduce ? "" : " mascot-bob")
+              }
+            />
+          </div>
         </div>
 
         <h2 className="mx-auto mt-6 max-w-2xl font-display text-3xl font-semibold tracking-tight text-balance text-white sm:text-5xl">
