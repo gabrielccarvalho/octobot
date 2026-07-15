@@ -1,0 +1,29 @@
+name: Deploy bot to Fly
+
+# Deploys apps/bot to Fly.io, but ONLY when bot-relevant files change — a
+# landing-page-only push to main will not rebuild or redeploy the bot.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/bot/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+concurrency:
+  group: deploy-bot
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: flyctl deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # Build context is the repo root ("."); fly.toml's dockerfile="Dockerfile"
+      # is resolved relative to apps/bot/. --remote-only builds on Fly's builder.
+      - run: flyctl deploy . --config apps/bot/fly.toml --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
