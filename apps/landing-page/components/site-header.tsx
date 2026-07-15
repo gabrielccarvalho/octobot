@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { AddToDiscord } from "@/components/add-to-discord"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/icon"
-import { NAV_LINKS, DISCORD_COMMUNITY_URL } from "@/lib/content"
+import { NAV_LINKS, DISCORD_COMMUNITY_URL, GITHUB_REPO_URL } from "@/lib/content"
 import { cn } from "@/lib/utils"
 
 export function SiteHeader() {
@@ -32,6 +32,15 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-1.5">
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="OctoBot on GitHub"
+              className="hidden size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:inline-flex"
+            >
+              <Icon name="Github01Icon" className="size-5" />
+            </a>
             <ThemeToggle />
             <div className="hidden sm:block">
               <AddToDiscord href={DISCORD_COMMUNITY_URL}>Join community</AddToDiscord>
@@ -67,6 +76,16 @@ export function SiteHeader() {
                 {link.label}
               </a>
             ))}
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Icon name="Github01Icon" className="size-4" />
+              GitHub
+            </a>
             <div className="mt-1 px-1">
               <AddToDiscord href={DISCORD_COMMUNITY_URL} className="w-full">
                 Join community
