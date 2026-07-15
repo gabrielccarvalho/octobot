@@ -111,7 +111,38 @@ allowBuilds:
 }
 ```
 
-- [ ] **Step 8: Write root `.dockerignore`** (used later by the bot's root-context build)
+- [ ] **Step 8: Write root ignore files** (`.gitignore` and `.dockerignore`)
+
+The site's own `.gitignore` moved into `apps/landing-page` in Step 2, so the repo root now has none — but `pnpm install` creates a root `node_modules/`, and Turbo creates `.turbo/`. A root `.gitignore` is required so `git add -A` (Step 10) does not commit dependencies or scratch. Write root `.gitignore`:
+
+```
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+.turbo/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Local data / db
+*.sqlite
+*.db
+data/
+
+# OS
+.DS_Store
+
+# Subagent-driven-development scratch (ledger, briefs, reports)
+.superpowers/
+```
+
+Then write root `.dockerignore` (used later by the bot's root-context build):
 
 ```
 **/node_modules
