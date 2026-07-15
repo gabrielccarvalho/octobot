@@ -22,11 +22,11 @@ const fontMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://octobot.dev"),
   title: {
-    default: "OctoBot — GitHub, in your DMs",
+    default: "OctoBot — GitHub notifications that reach you on Discord",
     template: "%s · OctoBot",
   },
   description:
-    "OctoBot is a Discord bot that DMs you the moment something on GitHub needs your attention — review requests, mentions, CI failures, approvals — across every repository your account can access. One click to connect.",
+    "A Discord bot that DMs you the moment something on GitHub needs you — review requests, mentions, CI failures, approvals. Open source, one click to connect.",
   keywords: [
     "OctoBot",
     "Discord GitHub bot",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "OctoBot — GitHub, in your DMs",
     description:
-      "Get a Discord DM the moment a GitHub review, mention, or CI failure needs you — across every repo you can access. One click to connect.",
+      "Get a Discord DM the moment a GitHub review, mention, or CI failure needs you. Open source, one click to connect.",
     siteName: "OctoBot",
     images: [{ url: "/og.png", width: 1200, height: 630, alt: "OctoBot" }],
   },
