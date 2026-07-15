@@ -202,6 +202,17 @@
 }
 .reveal-run { animation: reveal-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* Waterline: two drifting wave layers. Width is 200%; drifting -50% loops seamlessly. */
+@keyframes wave-drift {
+  to { transform: translateX(-50%); }
+}
+.waterline-wave {
+  animation: wave-drift 14s linear infinite;
+}
+.waterline-wave-slow {
+  animation: wave-drift 22s linear infinite;
+}
+
 /* When scripting is unavailable, motion never runs — force-show anything it
    would have revealed. */
 @media (scripting: none) {
