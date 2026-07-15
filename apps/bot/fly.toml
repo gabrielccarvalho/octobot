@@ -14,7 +14,7 @@ primary_region = 'iad'
 [env]
   PORT = "8080"                              # must match http_service.internal_port
   DATABASE_PATH = "/data/bot.sqlite"         # on the mounted /data volume
-  PUBLIC_BASE_URL = "https://api.octobot.dev" # OAuth callback host: /oauth/callback
+  PUBLIC_BASE_URL = "https://pr-assistant.fly.dev" # OAuth callback host: /oauth/callback (switch to https://api.octobot.dev after DNS+cert)
 
 [processes]
   app = 'node dist/index.js'
