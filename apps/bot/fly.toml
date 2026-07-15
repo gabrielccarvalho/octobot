@@ -9,12 +9,9 @@ primary_region = 'iad'
 [build]
   dockerfile = "apps/bot/Dockerfile"
 
-# Non-secret runtime config. Secrets (DISCORD_TOKEN, GITHUB_OAUTH_*,
-# TOKEN_ENCRYPTION_KEY, DISCORD_CLIENT_ID) are set via `fly secrets set`.
-[env]
-  PORT = "8080"                              # must match http_service.internal_port
-  DATABASE_PATH = "/data/bot.sqlite"         # on the mounted /data volume
-  PUBLIC_BASE_URL = "https://pr-assistant.fly.dev" # OAuth callback host: /oauth/callback (switch to https://api.octobot.dev after DNS+cert)
+# All runtime config (PORT, DATABASE_PATH, PUBLIC_BASE_URL) and secrets
+# (DISCORD_TOKEN, DISCORD_CLIENT_ID, GITHUB_OAUTH_*, TOKEN_ENCRYPTION_KEY) are
+# managed as Fly secrets — see `fly secrets list`. Do not duplicate them here.
 
 [processes]
   app = 'node dist/index.js'

@@ -13,25 +13,22 @@ fly deploy --config apps/bot/fly.toml
 
 ## Runtime configuration
 
-Non-secret config lives in `fly.toml` `[env]`: `PORT=8080` (matches
-`http_service.internal_port`), `DATABASE_PATH=/data/bot.sqlite` (on the volume),
-and `PUBLIC_BASE_URL=https://api.octobot.dev` (OAuth callback host).
+All runtime config is managed as **Fly secrets** (already set — `fly secrets list`),
+so it persists across deploys and stays out of the repo. The full set:
 
-The 5 secrets are set out-of-band and persist across deploys:
+`DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`,
+`GITHUB_OAUTH_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `PORT` (`8080`, matches
+`http_service.internal_port`), `DATABASE_PATH` (`/data/bot.sqlite`), and
+`PUBLIC_BASE_URL` (the OAuth callback host).
+
+To set or rotate one:
 
 ```bash
-fly secrets set \
-  DISCORD_TOKEN=... \
-  DISCORD_CLIENT_ID=1526667638455926794 \
-  GITHUB_OAUTH_CLIENT_ID=... \
-  GITHUB_OAUTH_CLIENT_SECRET=... \
-  TOKEN_ENCRYPTION_KEY=... \
-  --config apps/bot/fly.toml
+fly secrets set KEY=value --config apps/bot/fly.toml
 ```
 
-`TOKEN_ENCRYPTION_KEY` must be 64 hex chars (`openssl rand -hex 32`). Reuse the
-existing key if one is already set — rotating it invalidates every linked user's
-stored GitHub token.
+`TOKEN_ENCRYPTION_KEY` must be 64 hex chars (`openssl rand -hex 32`). Never
+rotate it while users are linked — it decrypts their stored GitHub tokens.
 
 ## Custom domain (api.octobot.dev)
 
