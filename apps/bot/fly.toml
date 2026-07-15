@@ -7,6 +7,7 @@ app = 'pr-assistant'
 primary_region = 'iad'
 
 [build]
+  dockerfile = "apps/bot/Dockerfile"
 
 [processes]
   app = 'node dist/index.js'
