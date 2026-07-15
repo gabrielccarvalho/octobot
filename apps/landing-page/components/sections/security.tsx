@@ -1,5 +1,6 @@
 import { Section, SectionHeading } from "@/components/section"
 import { Icon, type IconName } from "@/components/icon"
+import { Reveal } from "@/components/reveal"
 import { SECURITY } from "@/lib/content"
 
 export function Security() {
@@ -13,8 +14,8 @@ export function Security() {
         />
 
         <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2">
-          {SECURITY.map((s) => (
-            <div key={s.title} className="flex gap-4">
+          {SECURITY.map((s, i) => (
+            <Reveal key={s.title} delay={i * 60} className="flex gap-4">
               <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
                 <Icon name={s.icon as IconName} className="size-5" />
               </div>
@@ -26,7 +27,7 @@ export function Security() {
                   {s.body}
                 </p>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

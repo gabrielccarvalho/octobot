@@ -1,4 +1,5 @@
 import { Section, SectionHeading } from "@/components/section"
+import { Reveal } from "@/components/reveal"
 import { SUBJECT_TYPES, REASONS } from "@/lib/content"
 
 export function Notifications() {
@@ -17,16 +18,17 @@ export function Notifications() {
             Subject types
           </h3>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">
-            {SUBJECT_TYPES.map((t) => (
-              <div
+            {SUBJECT_TYPES.map((t, i) => (
+              <Reveal
                 key={t.label}
+                delay={i * 60}
                 className="flex items-center gap-3 rounded-xl border border-border/70 bg-card/60 px-4 py-3.5 ring-1 ring-foreground/5 backdrop-blur-sm"
               >
                 <span className="text-xl leading-none" aria-hidden>
                   {t.emoji}
                 </span>
                 <span className="text-sm font-medium">{t.label}</span>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -37,13 +39,14 @@ export function Notifications() {
             Reasons — the prefix on every DM
           </h3>
           <div className="mt-4 flex flex-wrap gap-2.5">
-            {REASONS.map((r) => (
-              <span
+            {REASONS.map((r, i) => (
+              <Reveal
                 key={r}
+                delay={i * 60}
                 className="rounded-full border border-border/70 bg-card/50 px-3.5 py-2 font-mono text-xs text-foreground/80 backdrop-blur-sm"
               >
                 {r}
-              </span>
+              </Reveal>
             ))}
           </div>
 

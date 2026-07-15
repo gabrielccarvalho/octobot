@@ -1,4 +1,5 @@
 import { HowItWorksScene } from "@/components/how-it-works-scene"
+import { Reveal } from "@/components/reveal"
 import { Section, SectionHeading } from "@/components/section"
 import { STEPS } from "@/lib/content"
 
@@ -12,9 +13,11 @@ export function HowItWorks() {
       />
 
       <ol className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-border/70 bg-border/60 sm:grid-cols-2 lg:grid-cols-4">
-        {STEPS.map((step) => (
-          <li
+        {STEPS.map((step, i) => (
+          <Reveal
             key={step.n}
+            as="li"
+            delay={i * 60}
             className="relative flex flex-col gap-4 bg-card/70 p-7 backdrop-blur-sm"
           >
             <HowItWorksScene scene={step.scene} className="h-28 w-full" />
@@ -28,7 +31,7 @@ export function HowItWorks() {
             <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
               {step.body}
             </p>
-          </li>
+          </Reveal>
         ))}
       </ol>
     </Section>

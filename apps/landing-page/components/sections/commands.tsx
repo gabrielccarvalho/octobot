@@ -1,4 +1,5 @@
 import { Section, SectionHeading } from "@/components/section"
+import { Reveal } from "@/components/reveal"
 import { COMMANDS } from "@/lib/content"
 
 export function Commands() {
@@ -11,9 +12,10 @@ export function Commands() {
       />
 
       <div className="mt-14 grid gap-3 sm:grid-cols-2">
-        {COMMANDS.map((cmd) => (
-          <div
+        {COMMANDS.map((cmd, i) => (
+          <Reveal
             key={cmd.name}
+            delay={i * 60}
             className="group flex items-start gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 ring-1 ring-foreground/5 backdrop-blur-sm transition-colors hover:border-primary/40"
           >
             <code className="shrink-0 rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1.5 font-mono text-sm font-medium text-primary">
@@ -22,7 +24,7 @@ export function Commands() {
             <p className="pt-0.5 text-sm leading-relaxed text-muted-foreground text-pretty">
               {cmd.body}
             </p>
-          </div>
+          </Reveal>
         ))}
       </div>
     </Section>

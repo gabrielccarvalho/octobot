@@ -1,5 +1,6 @@
 import { Section, SectionHeading } from "@/components/section"
 import { Icon, type IconName } from "@/components/icon"
+import { Reveal } from "@/components/reveal"
 import { FEATURES } from "@/lib/content"
 import { cn } from "@/lib/utils"
 
@@ -13,9 +14,10 @@ export function Features() {
       />
 
       <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map((f) => (
-          <div
+        {FEATURES.map((f, i) => (
+          <Reveal
             key={f.title}
+            delay={i * 60}
             className={cn(
               "group relative flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors",
               f.accent
@@ -41,7 +43,7 @@ export function Features() {
                 {f.body}
               </p>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
     </Section>
