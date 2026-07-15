@@ -17,6 +17,21 @@ export const DISCORD_INVITE_URL =
 export const DISCORD_COMMUNITY_URL = "https://discord.gg/dfJPuhDGu6"
 export const CONTACT_EMAIL = "gabrielccarvalhopro@gmail.com"
 
+// --- Open source -------------------------------------------------------------
+
+/** Public source repository. OctoBot is MIT-licensed and open source. */
+export const GITHUB_REPO_URL = "https://github.com/gabrielccarvalho/octobot"
+export const GITHUB_ISSUES_URL = `${GITHUB_REPO_URL}/issues`
+export const GITHUB_CONTRIBUTING_URL = `${GITHUB_REPO_URL}/blob/main/CONTRIBUTING.md`
+
+export const OPEN_SOURCE = {
+  eyebrow: "Open source",
+  title: "Don't trust it — read it",
+  body: "OctoBot holds a token that can read your repositories. So every line that touches that token is public. Read it, audit it, or send a patch.",
+  points: ["MIT-licensed", "Read-only access", "Self-auditable"],
+  cta: "Star on GitHub",
+} as const
+
 /** Brand / short name used throughout the copy. */
 export const COMPANY_NAME = "OctoBot"
 /** Registered entity behind OctoBot. */
@@ -136,6 +151,7 @@ export type Step = {
   n: string
   title: string
   body: string
+  scene: "connect" | "baseline" | "notify" | "digest"
 }
 
 export const STEPS: Step[] = [
@@ -143,21 +159,25 @@ export const STEPS: Step[] = [
     n: "01",
     title: "Connect",
     body: "Run /link and OctoBot hands you a personal GitHub authorization link, guarded by a single-use, time-limited token. Authorize, and your account is linked.",
+    scene: "connect",
   },
   {
     n: "02",
     title: "Baseline",
     body: "On first connect it marks today's notifications as already-seen and DMs you one welcome summary of what needs attention — so you're never blasted with history.",
+    scene: "baseline",
   },
   {
     n: "03",
     title: "Notify",
     body: "About once a minute OctoBot checks GitHub for new activity, filters it against your subscription, enriches PR reviews with their verdict, and DMs you — deduplicated per thread.",
+    scene: "notify",
   },
   {
     n: "04",
     title: "Digest",
     body: "At 6am it can send a once-a-day roundup of the pull requests awaiting your review. Optional, and only sent when the list isn't empty.",
+    scene: "digest",
   },
 ]
 
@@ -232,6 +252,11 @@ export const SECURITY: SecurityPoint[] = [
     icon: "Shield01Icon",
     title: "Least logging",
     body: "Only IDs, statuses, and errors are recorded — never your tokens, secrets, or message contents.",
+  },
+  {
+    icon: "Github01Icon",
+    title: "Open source",
+    body: "Every line is public and MIT-licensed. Don't take the read-only promise on faith — read the code that keeps it.",
   },
 ]
 
