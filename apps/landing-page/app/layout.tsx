@@ -5,7 +5,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 
 import "./globals.css"
 import { DeepBackground } from "@/components/deep-background"
-import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" })
@@ -61,9 +60,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
       className={cn(
-        "antialiased",
+        "dark antialiased",
         fontMono.variable,
         "font-sans",
         figtree.variable,
@@ -71,10 +69,8 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>
-          <DeepBackground />
-          {children}
-        </ThemeProvider>
+        <DeepBackground />
+        {children}
         <Analytics />
         <SpeedInsights />
       </body>
