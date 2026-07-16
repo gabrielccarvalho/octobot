@@ -87,6 +87,97 @@ export const HERO_MESSAGES: DmMessage[] = [
   },
 ]
 
+// --- Hero Discord embeds (mirrors the bot's real renderEmbed output) ---------
+
+/**
+ * One hero embed = one real OctoMessage as Discord renders it. Colors and mascot
+ * filenames are copied verbatim from the bot's PR_EVENT_META / CHECKS_META / TONE
+ * registries (apps/bot/src/notifier.ts, messages/tone.ts) — keep them in sync.
+ */
+export type HeroEmbed = {
+  emoji: string
+  label: string
+  color: string // tone stripe hex
+  mascot: string // filename under /public/mascot
+  number: number
+  title: string
+  repo: string
+  relativeTime: string
+}
+
+export const HERO_EMBEDS: HeroEmbed[] = [
+  {
+    emoji: "🔔",
+    label: "Review requested",
+    color: "#58a6ff",
+    mascot: "summoned-v1.png",
+    number: 128,
+    title: "Add rate limiting",
+    repo: "acme/api",
+    relativeTime: "5 minutes ago",
+  },
+  {
+    emoji: "✅",
+    label: "Your PR was approved",
+    color: "#3fb950",
+    mascot: "celebrate-v1.png",
+    number: 61,
+    title: "Dark mode",
+    repo: "acme/web",
+    relativeTime: "2 minutes ago",
+  },
+  {
+    emoji: "❌",
+    label: "CI failed on your PR",
+    color: "#f85149",
+    mascot: "alarm-v1.png",
+    number: 402,
+    title: "Bump node to 22 in CI",
+    repo: "acme/infra",
+    relativeTime: "just now",
+  },
+  {
+    emoji: "🎉",
+    label: "Your PR was merged",
+    color: "#8957e5",
+    mascot: "celebrate-v1.png",
+    number: 57,
+    title: "Ship onboarding flow",
+    repo: "acme/web",
+    relativeTime: "1 minute ago",
+  },
+  {
+    emoji: "🔧",
+    label: "Changes requested on your PR",
+    color: "#d29922",
+    mascot: "needs-work-v1.png",
+    number: 59,
+    title: "Fix nav overflow on mobile",
+    repo: "acme/web",
+    relativeTime: "1 minute ago",
+  },
+  {
+    emoji: "📣",
+    label: "Mentioned",
+    color: "#d29922",
+    mascot: "summoned-v1.png",
+    number: 133,
+    title: "Flaky deploy on edge runtime",
+    repo: "acme/infra",
+    relativeTime: "just now",
+  },
+  {
+    emoji: "✅",
+    label: "CI passed on your PR",
+    color: "#3fb950",
+    mascot: "all-good-v1.png",
+    number: 130,
+    title: "Cache GitHub API responses",
+    repo: "acme/api",
+    relativeTime: "just now",
+  },
+]
+
 // --- Value strip -------------------------------------------------------------
 
 export const VALUE_POINTS = [

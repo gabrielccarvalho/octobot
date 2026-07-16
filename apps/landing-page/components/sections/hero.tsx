@@ -1,26 +1,26 @@
 "use client"
 
 import * as React from "react"
-import Image from "next/image"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 
 import { AddToDiscord } from "@/components/add-to-discord"
-import { DmCard } from "@/components/dm-message"
+import { DiscordEmbedMessage } from "@/components/discord/embed"
+import { DiscordFrame } from "@/components/discord/frame"
 import { Icon } from "@/components/icon"
 import { Eyebrow } from "@/components/section"
 import {
-  HERO_MESSAGES,
+  HERO_EMBEDS,
   VALUE_POINTS,
   DISCORD_COMMUNITY_URL,
   DISCORD_INVITE_URL,
 } from "@/lib/content"
-import type { DmMessage } from "@/lib/content"
+import type { HeroEmbed } from "@/lib/content"
 
-type FeedItem = { key: number; msg: DmMessage }
+type FeedItem = { key: number; msg: HeroEmbed }
 
 function useLiveFeed(enabled: boolean) {
   const [feed, setFeed] = React.useState<FeedItem[]>(() =>
-    HERO_MESSAGES.slice(0, 3).map((msg, i) => ({ key: i, msg }))
+    HERO_EMBEDS.slice(0, 3).map((msg, i) => ({ key: i, msg }))
   )
   const counter = React.useRef(3)
 
@@ -28,12 +28,12 @@ function useLiveFeed(enabled: boolean) {
     if (!enabled) return
     const id = window.setInterval(() => {
       setFeed((prev) => {
-        const msg = HERO_MESSAGES[counter.current % HERO_MESSAGES.length]
+        const msg = HERO_EMBEDS[counter.current % HERO_EMBEDS.length]
         const next = [...prev, { key: counter.current, msg }]
         counter.current += 1
         return next.slice(-3)
       })
-    }, 2800)
+    }, 3000)
     return () => window.clearInterval(id)
   }, [enabled])
 
@@ -141,38 +141,22 @@ export function Hero() {
             className="absolute -inset-6 -z-[1] rounded-[2rem] bg-primary/10 blur-2xl"
             aria-hidden
           />
-          <div className="rounded-3xl border border-border/70 bg-card/60 p-2.5 shadow-2xl shadow-primary/10 ring-1 ring-foreground/5 backdrop-blur-xl">
-            <div className="flex items-center gap-3 rounded-2xl bg-background/50 px-4 py-3">
-              <div className="relative size-8">
-                <Image src="/logo.png" alt="" width={32} height={32} className="rounded-full" />
-                <span className="biolume-dot absolute -end-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-card bg-biolume" />
-              </div>
-              <div className="leading-tight">
-                <div className="text-sm font-semibold">OctoBot</div>
-                <div className="font-mono text-[11px] text-biolume">online · watching 14 repos</div>
-              </div>
-              <span className="ms-auto font-mono text-[11px] text-muted-foreground">
-                #direct-messages
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-2.5 p-2.5">
-              <AnimatePresence initial={false} mode="popLayout">
-                {feed.map((item) => (
-                  <motion.div
-                    key={item.key}
-                    layout
-                    initial={{ opacity: 0, y: 16, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -16 }}
-                    transition={{ type: "spring", stiffness: 260, damping: 26 }}
-                  >
-                    <DmCard message={item.msg} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </div>
+          <DiscordFrame>
+            <AnimatePresence initial={false} mode="popLayout">
+              {feed.map((item) => (
+                <motion.div
+                  key={item.key}
+                  layout
+                  initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 26 }}
+                >
+                  <DiscordEmbedMessage embed={item.msg} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </DiscordFrame>
         </motion.div>
       </div>
 
