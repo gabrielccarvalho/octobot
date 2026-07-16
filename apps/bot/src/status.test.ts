@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatAttention, formatDigest, reconnectHint, type AttentionList } from "./status";
+import { formatAttention, formatDigest, reconnectHint, attentionMessage, digestMessage, type AttentionList } from "./status";
 import type { PrSummary } from "./github/search";
 
 const UPDATED_AT = "2026-06-17T10:00:00Z";
@@ -159,5 +159,34 @@ describe("formatDigest", () => {
     expect(msg).toContain("octocat");
     expect(msg).toContain("#7 [Fix bug](https://github.com/acme/repo/pull/7)");
     expect(msg).toContain("No open PRs of yours are waiting on a review.");
+  });
+});
+
+describe("attentionMessage / digestMessage", () => {
+  const list = {
+    incoming: [] as never[],
+    mine: [] as never[],
+    ssoPartialOrgIds: [] as string[],
+  };
+
+  it("puts the header in the title with no markdown, and the body without it", () => {
+    const msg = attentionMessage("octocat", list);
+    expect(msg.title).toBe("✅ Connected as octocat");
+    expect(msg.title).not.toContain("`");
+    expect(msg.tone).toBe("celebrate");
+    expect(msg.body).toContain("Nothing awaiting your review.");
+    expect(msg.body).not.toContain("Connected as");
+  });
+
+  it("gives the digest its own tone and title", () => {
+    const msg = digestMessage("octocat", list);
+    expect(msg.title).toBe("☀️ Daily PR digest for octocat");
+    expect(msg.title).not.toContain("*");
+    expect(msg.tone).toBe("digest");
+  });
+
+  it("shares its body with the string formatter minus the header", () => {
+    const msg = digestMessage("octocat", list);
+    expect(formatDigest("octocat", list)).toContain(msg.body);
   });
 });

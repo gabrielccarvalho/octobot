@@ -1,4 +1,5 @@
 import type { PrSummary } from "./github/search";
+import type { OctoMessage } from "./notifier";
 
 export interface AttentionList {
   incoming: PrSummary[];
@@ -92,6 +93,16 @@ export function formatAttention(githubLogin: string, list: AttentionList): strin
   return clampMessage(`${header}\n\n${renderBody(list)}`);
 }
 
+// The embed twin of formatAttention. The header becomes the embed title (which renders
+// no markdown, hence no backticks) and renderBody becomes the description.
+export function attentionMessage(githubLogin: string, list: AttentionList): OctoMessage {
+  return {
+    tone: "celebrate",
+    title: `✅ Connected as ${githubLogin}`,
+    body: clampMessage(renderBody(list)),
+  };
+}
+
 export function reconnectHint(authSource: string): string {
   return authSource === "pat"
     ? "Run `/connect-token` with a fresh token to reconnect."
@@ -101,4 +112,12 @@ export function reconnectHint(authSource: string): string {
 export function formatDigest(githubLogin: string, list: AttentionList): string {
   const header = `☀️ **Daily PR digest** for \`${githubLogin}\``;
   return clampMessage(`${header}\n\n${renderBody(list)}`);
+}
+
+export function digestMessage(githubLogin: string, list: AttentionList): OctoMessage {
+  return {
+    tone: "digest",
+    title: `☀️ Daily PR digest for ${githubLogin}`,
+    body: clampMessage(renderBody(list)),
+  };
 }
