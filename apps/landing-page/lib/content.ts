@@ -43,51 +43,7 @@ export const JURISDICTION_FORUM = "the Comarca de São Paulo/SP"
 
 export const LAST_UPDATED = "July 14, 2026"
 
-// --- Hero DM stream (the signature artifact) --------------------------------
-
-export type DmMessage = {
-  reason: string // emoji + label prefix
-  repo: string
-  time: string
-  title: string
-  number: string
-  tone?: "default" | "approved" | "changes"
-}
-
-export const HERO_MESSAGES: DmMessage[] = [
-  {
-    reason: "🔔 Review requested",
-    repo: "acme/api",
-    time: "5 minutes ago",
-    number: "#128",
-    title: "Add rate limiting",
-  },
-  {
-    reason: "✅ Your PR was approved",
-    repo: "acme/web",
-    time: "2 minutes ago",
-    number: "#61",
-    title: "Dark mode",
-    tone: "approved",
-  },
-  {
-    reason: "📣 Mentioned",
-    repo: "acme/infra",
-    time: "just now",
-    number: "#402",
-    title: "Bump node to 22 in CI",
-  },
-  {
-    reason: "🔧 Changes requested on your PR",
-    repo: "acme/web",
-    time: "1 minute ago",
-    number: "#59",
-    title: "Fix nav overflow on mobile",
-    tone: "changes",
-  },
-]
-
-// --- Hero Discord embeds (mirrors the bot's real renderEmbed output) ---------
+// --- Discord embeds (mirrors the bot's real renderEmbed output) --------------
 
 /**
  * One hero embed = one real OctoMessage as Discord renders it. Colors and mascot

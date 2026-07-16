@@ -4,9 +4,10 @@ import * as React from "react"
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react"
 import type { MotionValue } from "motion/react"
 
-import { DmCard } from "@/components/dm-message"
+import { DiscordEmbedMessage } from "@/components/discord/embed"
+import { DiscordSurface } from "@/components/discord/frame"
 import { SectionHeading } from "@/components/section"
-import { HERO_MESSAGES, NOISE, REASONS } from "@/lib/content"
+import { HERO_EMBEDS, NOISE, REASONS } from "@/lib/content"
 
 /** Deterministic scatter for the 11 REASONS pills (percent offsets). */
 const SCATTER = [
@@ -73,7 +74,9 @@ export function Noise() {
           ))}
         </div>
         <div className="mx-auto mt-8 max-w-md">
-          <DmCard message={HERO_MESSAGES[0]} />
+          <DiscordSurface>
+            <DiscordEmbedMessage embed={HERO_EMBEDS[0]} />
+          </DiscordSurface>
         </div>
       </section>
     )
@@ -96,7 +99,9 @@ export function Noise() {
           <div className="absolute top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2">
             <motion.div data-motion-fade style={{ opacity: cardOpacity, y: cardY }} className="relative">
               <div className="absolute -inset-4 -z-[1] rounded-3xl bg-biolume/10 blur-xl" aria-hidden />
-              <DmCard message={HERO_MESSAGES[0]} />
+              <DiscordSurface>
+                <DiscordEmbedMessage embed={HERO_EMBEDS[0]} />
+              </DiscordSurface>
             </motion.div>
           </div>
         </div>

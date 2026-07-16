@@ -1,5 +1,7 @@
 import Image from "next/image"
 
+import { cn } from "@/lib/utils"
+
 /**
  * Decorative Discord dark-theme DM window: slim server rail, DM header, message
  * area (children), composer. Colors are Discord's own, hardcoded on purpose —
@@ -60,6 +62,34 @@ export function DiscordFrame({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * A bare slice of the Discord DM message area — same hardcoded Discord colors
+ * as DiscordFrame, minus the server rail, header, and composer. For sections
+ * that show one or two messages without the full window.
+ */
+export function DiscordSurface({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-4 overflow-hidden rounded-2xl bg-[#313338] p-4 shadow-2xl shadow-black/40 ring-1 ring-white/10",
+        className
+      )}
+      style={{
+        fontFamily:
+          '"gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif',
+      }}
+    >
+      {children}
     </div>
   )
 }

@@ -3,24 +3,25 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "motion/react"
 
-import { DmCard } from "@/components/dm-message"
+import { DiscordEmbedMessage } from "@/components/discord/embed"
+import { DiscordSurface } from "@/components/discord/frame"
 import { Icon } from "@/components/icon"
 import type { IconName } from "@/components/icon"
 import { SectionHeading } from "@/components/section"
 import { Stagger, StaggerItem } from "@/components/motion-primitives"
-import { FEATURES, HERO_MESSAGES, REASONS, SUBJECT_TYPES } from "@/lib/content"
-import type { DmMessage } from "@/lib/content"
+import { FEATURES, HERO_EMBEDS, REASONS, SUBJECT_TYPES } from "@/lib/content"
+import type { HeroEmbed } from "@/lib/content"
 import { cn } from "@/lib/utils"
 
-/** Sample DMs mapped to the reason pill that lets them through. */
-const SAMPLES: { reason: (typeof REASONS)[number]; msg: DmMessage }[] = [
-  { reason: "🔔 Review requested", msg: HERO_MESSAGES[0] },
-  { reason: "✍️ Activity on your PR", msg: HERO_MESSAGES[1] },
-  { reason: "📣 Mentioned", msg: HERO_MESSAGES[2] },
-  { reason: "✍️ Activity on your PR", msg: HERO_MESSAGES[3] },
+/** Sample embeds mapped to the reason pill that lets them through. */
+const SAMPLES: { reason: (typeof REASONS)[number]; embed: HeroEmbed }[] = [
+  { reason: "🔔 Review requested", embed: HERO_EMBEDS[0] },
+  { reason: "✍️ Activity on your PR", embed: HERO_EMBEDS[1] },
+  { reason: "📣 Mentioned", embed: HERO_EMBEDS[5] },
+  { reason: "⚙️ CI activity", embed: HERO_EMBEDS[2] },
 ]
 
-/** Reasons on by default (the ones with a sample DM wired up). */
+/** Reasons on by default — flipping ⚙️ CI activity on reveals its sample. */
 const DEFAULT_ON = new Set<string>([
   "🔔 Review requested",
   "✍️ Activity on your PR",
@@ -96,27 +97,27 @@ export function ReachesYou() {
             <div className="mb-3 font-mono text-xs tracking-wide text-muted-foreground uppercase">
               your DMs would show
             </div>
-            <div className="flex min-h-24 flex-col gap-2.5">
+            <DiscordSurface className="min-h-28">
               <AnimatePresence initial={false}>
                 {visible.map((s) => (
                   <motion.div
-                    key={s.msg.number + s.msg.repo}
+                    key={`${s.embed.repo}#${s.embed.number}`}
                     layout
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 18 }}
                     transition={{ type: "spring", stiffness: 260, damping: 26 }}
                   >
-                    <DmCard message={s.msg} />
+                    <DiscordEmbedMessage embed={s.embed} />
                   </motion.div>
                 ))}
               </AnimatePresence>
               {visible.length === 0 && (
-                <p className="py-6 text-center font-mono text-xs text-muted-foreground">
+                <p className="py-6 text-center font-mono text-xs text-[#949ba4]">
                   silence. exactly what you asked for.
                 </p>
               )}
-            </div>
+            </DiscordSurface>
           </div>
         </div>
 
