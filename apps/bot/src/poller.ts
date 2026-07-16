@@ -1,6 +1,6 @@
 import type { Database, User } from "./db";
 import type { FetchResult } from "./github/notifications";
-import { formatNotification, type DmSender, type PrOutcome } from "./notifier";
+import { notificationMessage, type DmSender, type PrOutcome } from "./notifier";
 import type { PrEvent } from "./github/timeline";
 import type { ChecksVerdict } from "./github/checks";
 import { reconnectHint, TOKEN_SETTINGS_URL } from "./status";
@@ -31,10 +31,12 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
 
   if (res.status === 401) {
     try {
-      await deps.sender.sendDm(
-        user.discordId,
-        `⚠️ Your GitHub connection expired or was revoked. ${reconnectHint(user.authSource)}`
-      );
+      await deps.sender.sendDm(user.discordId, {
+        tone: "broken",
+        color: 0xf85149,
+        title: "⚠️ GitHub connection lost",
+        body: `Your GitHub connection expired or was revoked. ${reconnectHint(user.authSource)}`,
+      });
     } catch (err) {
       console.warn(`Failed to DM revocation notice to ${user.discordId}:`, err);
     }
@@ -53,11 +55,15 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
     if (deps.db.getMeta(ssoKey) !== value) {
       try {
         const n = res.ssoPartialOrgIds.length;
-        await deps.sender.sendDm(
-          user.discordId,
-          `⚠️ Your token isn't authorized for ${n} SAML SSO organization${n > 1 ? "s" : ""}, ` +
-            `so notifications from there won't arrive. Authorize it at <${TOKEN_SETTINGS_URL}> → **Configure SSO**.`
-        );
+        await deps.sender.sendDm(user.discordId, {
+          tone: "broken",
+          color: 0xd29922,
+          title: "⚠️ SAML SSO authorization needed",
+          body:
+            `Your token isn't authorized for ${n} SAML SSO organization${n > 1 ? "s" : ""}, ` +
+            `so notifications from there won't arrive. Authorize it at ` +
+            `<${TOKEN_SETTINGS_URL}> → **Configure SSO**.`,
+        });
         deps.db.setMeta(ssoKey, value);
       } catch (err) {
         console.warn(`Failed to DM SSO warning to ${user.discordId}:`, err);
@@ -95,7 +101,7 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
       }
     }
     try {
-      await deps.sender.sendDm(user.discordId, formatNotification(item, outcome));
+      await deps.sender.sendDm(user.discordId, notificationMessage(item, outcome));
       deps.db.markNotified(user.discordId, item.threadId, item.updatedAt);
     } catch (err) {
       console.warn(`Failed to DM ${user.discordId} for thread ${item.threadId}:`, err);

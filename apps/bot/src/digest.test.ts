@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createDatabase, type Database, type User } from "./db";
 import { buildDigest, buildDigestData, sendDigests, type DigestDeps } from "./digest";
-import type { DmSender } from "./notifier";
+import type { DmSender, OctoMessage } from "./notifier";
 import type { PrSummary, SearchResult } from "./github/search";
 
 let db: Database;
-let sent: { discordId: string; message: string }[];
+let sent: { discordId: string; message: OctoMessage }[];
 let sender: DmSender;
 
 const pr = (n: number): PrSummary => ({
@@ -96,6 +96,9 @@ describe("sendDigests", () => {
     const d = deps({ AWAITING: [pr(7)], MINE: [] });
     await sendDigests(d);
     expect(sent).toHaveLength(2); // both users have content (same fake results)
+    expect(sent[0].message.tone).toBe("digest");
+    expect(sent[0].message.title).toBe("☀️ Daily PR digest for octocat");
+    expect(sent[0].message.body).toContain("#7");
   });
 
   it("skips users who disabled the digest", async () => {

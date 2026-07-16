@@ -3,10 +3,10 @@ import { createDatabase, type Database } from "./db";
 import { createOnConnect } from "./onboarding";
 import type { FetchResult } from "./github/notifications";
 import type { PrSummary } from "./github/search";
-import type { DmSender } from "./notifier";
+import type { DmSender, OctoMessage } from "./notifier";
 
 let db: Database;
-let sent: { discordId: string; message: string }[];
+let sent: { discordId: string; message: OctoMessage }[];
 let sender: DmSender;
 
 function pr(n: number): PrSummary {
@@ -73,7 +73,8 @@ it("baselines current threads, sets the watermark, and sends one summary DM", as
   expect(db.getUser("d1")?.lastModified).toBe("Mon, 01 Jan 2026 00:00:00 GMT");
   expect(sent).toHaveLength(1);
   expect(sent[0].discordId).toBe("d1");
-  expect(sent[0].message).toContain("✅ Connected as `octocat`");
+  expect(sent[0].message.title).toBe("✅ Connected as octocat");
+  expect(sent[0].message.tone).toBe("celebrate");
   expect(d.searchPullRequests).toHaveBeenCalledTimes(1);
   expect(d.fetchMinePrs).toHaveBeenCalledTimes(1);
 });
@@ -94,14 +95,16 @@ it("appends the SSO warning, unioning and deduping org IDs from both searches", 
   const onConnect = createOnConnect(d);
   await onConnect("d1", "tok", "octocat");
   expect(sent).toHaveLength(1);
-  expect(sent[0].message).toContain("your token isn't authorized for 3 SAML SSO organizations.");
+  expect(sent[0].message.body).toContain(
+    "your token isn't authorized for 3 SAML SSO organizations."
+  );
 });
 
 it("renders byte-identically to today when ssoPartialOrgIds is empty", async () => {
   const d = deps({ search: [pr(7)] });
   const onConnect = createOnConnect(d);
   await onConnect("d1", "tok", "octocat");
-  expect(sent[0].message).not.toContain("⚠️");
+  expect(sent[0].message.body).not.toContain("⚠️");
 });
 
 describe("seeding the poller's warn-once gate", () => {

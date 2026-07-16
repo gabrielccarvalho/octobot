@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  formatNotification,
   notificationMessage,
   toneForReason,
   REASON_TONE,
@@ -21,57 +20,6 @@ const item: NotificationItem = {
 };
 
 const authorItem: NotificationItem = { ...item, reason: "author" };
-
-describe("formatNotification", () => {
-  it("renders a reason label in the two-line masked-link layout when there is no outcome", () => {
-    const [first, second] = formatNotification(item).split("\n");
-    expect(first).toContain("**Review requested**");
-    expect(first).toContain("acme/repo");
-    const unix = Math.floor(Date.parse("2026-06-17T10:00:00Z") / 1000);
-    expect(first).toContain(`<t:${unix}:R>`);
-    expect(second).toBe("[#42 Fix the widget](https://github.com/acme/repo/pull/42)");
-  });
-
-  it("renders a numberless subject without a leading #", () => {
-    const release = { ...item, reason: "subscribed", subjectType: "Release", subjectNumber: null, subjectTitle: "v1.2.0", subjectUrl: "https://github.com/acme/repo" };
-    expect(formatNotification(release).split("\n")[1]).toBe("[v1.2.0](https://github.com/acme/repo)");
-  });
-
-  const eventCases: [PrOutcome, string, string][] = [
-    [{ source: "event", kind: "approved" }, "✅", "Your PR was approved"],
-    [{ source: "event", kind: "changes_requested" }, "🔧", "Changes requested on your PR"],
-    [{ source: "event", kind: "reviewed" }, "💬", "New review on your PR"],
-    [{ source: "event", kind: "commented" }, "💬", "New comment on your PR"],
-    [{ source: "event", kind: "committed" }, "📌", "New commits on your PR"],
-    [{ source: "event", kind: "merged" }, "🎉", "Your PR was merged"],
-    [{ source: "event", kind: "closed" }, "🚪", "Your PR was closed"],
-    [{ source: "event", kind: "reopened" }, "🔓", "Your PR was reopened"],
-    [{ source: "event", kind: "ready_for_review" }, "📝", "Marked ready for review"],
-    [{ source: "event", kind: "converted_to_draft" }, "📄", "Converted to draft"],
-    [{ source: "event", kind: "assigned" }, "👤", "You were assigned"],
-    [{ source: "event", kind: "labeled" }, "🏷️", "Labels changed on your PR"],
-    [{ source: "event", kind: "review_requested" }, "🔔", "Review requested"],
-    [{ source: "event", kind: "mentioned" }, "📣", "Mentioned"],
-    [{ source: "checks", verdict: "passed" }, "✅", "CI passed on your PR"],
-    [{ source: "checks", verdict: "failed" }, "❌", "CI failed on your PR"],
-  ];
-
-  it.each(eventCases)("renders %o as its label", (outcome, emoji, label) => {
-    const first = formatNotification(item, outcome).split("\n")[0];
-    expect(first).toContain(emoji);
-    expect(first).toContain(`**${label}**`);
-  });
-
-  it("never shows the bare generic label for an author PR with no outcome", () => {
-    const first = formatNotification(authorItem, null).split("\n")[0];
-    expect(first).not.toContain("Activity on your PR");
-    expect(first).toContain("**Update on your PR**");
-  });
-
-  it("keeps a specific reason label (mention) as the fallback when there is no outcome", () => {
-    expect(formatNotification({ ...item, reason: "mention" }, null)).toContain("**Mentioned**");
-  });
-});
 
 describe("notificationMessage", () => {
   it("puts emoji+label in the title and link+repo+relative-time in the body", () => {

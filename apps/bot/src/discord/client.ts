@@ -16,6 +16,7 @@ import {
 } from "discord.js";
 import type { Database } from "../db";
 import type { DmSender } from "../notifier";
+import { renderEmbed } from "./render";
 import { buildDigest, type DigestDeps } from "../digest";
 import {
   handleLink,
@@ -70,7 +71,8 @@ export async function startDiscord(
   linkDeps: LinkDeps,
   statusDeps: StatusDeps,
   digestDeps: DigestDeps,
-  tokenDeps: TokenDeps
+  tokenDeps: TokenDeps,
+  mascotBaseUrl: string
 ): Promise<DiscordRuntime> {
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -267,7 +269,7 @@ export async function startDiscord(
   const sender: DmSender = {
     async sendDm(discordId, message) {
       const user = await client.users.fetch(discordId);
-      await user.send(message);
+      await user.send({ embeds: [renderEmbed(message, mascotBaseUrl)] });
     },
   };
 

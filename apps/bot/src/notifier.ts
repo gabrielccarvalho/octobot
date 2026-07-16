@@ -5,7 +5,7 @@ import { reasonMeta } from "./github/taxonomy";
 import type { Tone } from "./messages/tone";
 
 export interface DmSender {
-  sendDm(discordId: string, message: string): Promise<void>;
+  sendDm(discordId: string, message: OctoMessage): Promise<void>;
 }
 
 // A resolved explanation of what triggered a PR notification.
@@ -105,18 +105,6 @@ function resolveMeta(item: NotificationItem, outcome: PrOutcome | null): Meta {
   }
   const meta = reasonMeta(item.reason);
   return { emoji: meta.emoji, label: meta.label, tone: toneForReason(item.reason) };
-}
-
-export function formatNotification(item: NotificationItem, outcome?: PrOutcome | null): string {
-  const { emoji, label } = resolveMeta(item, outcome ?? null);
-  // Discord renders <t:UNIX:R> as a localized, auto-updating "5 minutes ago".
-  const unix = Math.floor(new Date(item.updatedAt).getTime() / 1000);
-  // Masked link keeps it clickable while suppressing Discord's bulky link embed.
-  const link =
-    item.subjectNumber != null
-      ? `[#${item.subjectNumber} ${item.subjectTitle}](${item.subjectUrl})`
-      : `[${item.subjectTitle}](${item.subjectUrl})`;
-  return [`${emoji} **${label}** · ${item.repoFullName} · <t:${unix}:R>`, link].join("\n");
 }
 
 export function notificationMessage(

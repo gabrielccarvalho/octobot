@@ -2,7 +2,7 @@ import type { Database } from "./db";
 import type { FetchResult } from "./github/notifications";
 import type { SearchResult } from "./github/search";
 import type { DmSender } from "./notifier";
-import { formatAttention } from "./status";
+import { attentionMessage } from "./status";
 import { ssoWarnedMetaKey, ssoWarnedMetaValue } from "./github/sso";
 
 export interface OnConnectDeps {
@@ -57,7 +57,7 @@ export function createOnConnect(deps: OnConnectDeps) {
     ];
     await deps.sender.sendDm(
       discordId,
-      formatAttention(githubLogin, { incoming, mine, ssoPartialOrgIds })
+      attentionMessage(githubLogin, { incoming, mine, ssoPartialOrgIds })
     );
   };
 }

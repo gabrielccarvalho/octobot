@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createDatabase, type Database, type User } from "./db";
 import { pollUser, type PollerDeps } from "./poller";
 import type { FetchResult } from "./github/notifications";
-import type { DmSender } from "./notifier";
+import type { DmSender, OctoMessage } from "./notifier";
 import type { PrEvent } from "./github/timeline";
 import type { ChecksVerdict } from "./github/checks";
 import { ssoWarnedMetaValue } from "./github/sso";
 
 let db: Database;
-let sent: { discordId: string; message: string }[];
+let sent: { discordId: string; message: OctoMessage }[];
 let sender: DmSender;
 let nextResult: FetchResult;
 let nextEvent: PrEvent | null;
@@ -82,7 +82,8 @@ it("on 401 sends a reconnect notice and deletes the user", async () => {
   nextResult = { status: 401, items: [], lastModified: null, pollInterval: 60, ssoPartialOrgIds: [] };
   await pollUser(deps(), user());
   expect(sent).toHaveLength(1);
-  expect(sent[0].message).toMatch(/reconnect|expired|revoked/i);
+  expect(sent[0].message.tone).toBe("broken");
+  expect(sent[0].message.body).toMatch(/reconnect|expired|revoked/i);
   expect(db.getUser("d1")).toBeNull();
 });
 
@@ -114,7 +115,7 @@ it("renders the classified event in the DM", async () => {
   nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
   nextEvent = { kind: "approved", at: prItem.updatedAt };
   await pollUser(deps(), user());
-  expect(sent[0].message).toContain("Your PR was approved");
+  expect(sent[0].message.title).toContain("Your PR was approved");
 });
 
 it("falls back to a CI verdict when the timeline yields no event", async () => {
@@ -122,7 +123,7 @@ it("falls back to a CI verdict when the timeline yields no event", async () => {
   nextEvent = null;
   nextChecks = "failed";
   await pollUser(deps(), user());
-  expect(sent[0].message).toContain("CI failed on your PR");
+  expect(sent[0].message.title).toContain("CI failed on your PR");
 });
 
 it("does not probe CI for an unmapped non-CI reason when the timeline yields no event", async () => {
@@ -133,9 +134,9 @@ it("does not probe CI for an unmapped non-CI reason when the timeline yields no 
   d.fetchChecksVerdict = vi.fn(async () => nextChecks);
   await pollUser(d, user());
   expect(d.fetchChecksVerdict).not.toHaveBeenCalled();
-  expect(sent[0].message).not.toContain("CI passed");
-  expect(sent[0].message).not.toContain("CI failed");
-  expect(sent[0].message).toContain("Review requested"); // prItem.reason fallback
+  expect(sent[0].message.title).not.toContain("CI passed");
+  expect(sent[0].message.title).not.toContain("CI failed");
+  expect(sent[0].message.title).toContain("Review requested"); // prItem.reason fallback
 });
 
 it("still delivers the notification when enrichment throws", async () => {
@@ -144,7 +145,7 @@ it("still delivers the notification when enrichment throws", async () => {
   d.fetchPrEvent = async () => { throw new Error("boom"); };
   await pollUser(d, user());
   expect(sent).toHaveLength(1);
-  expect(sent[0].message).toContain("Review requested"); // prItem.reason fallback, DM not dropped
+  expect(sent[0].message.title).toContain("Review requested"); // prItem.reason fallback, DM not dropped
 });
 
 const issueItem = {
@@ -185,8 +186,8 @@ describe("SSO partial-results warning", () => {
     nextResult = { status: 200, items: [], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: ["222", "111"] };
     await pollUser(deps(), user());
     expect(sent).toHaveLength(1);
-    expect(sent[0].message).toMatch(/SAML SSO/);
-    expect(sent[0].message).toContain("2 SAML SSO organizations");
+    expect(sent[0].message.body).toMatch(/SAML SSO/);
+    expect(sent[0].message.body).toContain("2 SAML SSO organizations");
     expect(db.getMeta(ssoKey)).toBe("111,222"); // sorted, dedupe-key only
   });
 
@@ -240,7 +241,7 @@ describe("SSO partial-results warning", () => {
     const d = deps();
     d.sender = {
       sendDm: async (discordId, message) => {
-        if (message.includes("SAML SSO")) throw new Error("dm failed");
+        if (message.body.includes("SAML SSO")) throw new Error("dm failed");
         sent.push({ discordId, message });
       },
     };

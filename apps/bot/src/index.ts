@@ -81,7 +81,8 @@ async function main() {
     linkDeps,
     statusDeps,
     digestDeps,
-    tokenDeps
+    tokenDeps,
+    config.mascotBaseUrl
   );
   digestDeps.sender = sender;
 

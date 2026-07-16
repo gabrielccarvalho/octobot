@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createDatabase, type Database } from "./db";
 import { brtParts, maybeRunDigest } from "./scheduler";
 import type { DigestDeps } from "./digest";
-import type { DmSender } from "./notifier";
+import type { DmSender, OctoMessage } from "./notifier";
 import type { PrSummary } from "./github/search";
 
 let db: Database;
-let sent: { discordId: string; message: string }[];
+let sent: { discordId: string; message: OctoMessage }[];
 
 const pr = (n: number): PrSummary => ({
   repoFullName: "acme/repo",

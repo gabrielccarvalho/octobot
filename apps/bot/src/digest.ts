@@ -1,7 +1,7 @@
 import type { Database, User } from "./db";
 import type { SearchResult } from "./github/search";
 import type { DmSender } from "./notifier";
-import { formatDigest, type AttentionList } from "./status";
+import { formatDigest, digestMessage, type AttentionList } from "./status";
 
 export interface DigestDeps {
   db: Database;
@@ -45,8 +45,8 @@ export async function sendDigests(deps: DigestDeps): Promise<void> {
   for (const user of deps.db.getAllUsers()) {
     if (!deps.db.getDigestEnabled(user.discordId)) continue;
     try {
-      const message = await buildDigest(deps, user);
-      if (message) await deps.sender.sendDm(user.discordId, message);
+      const list = await buildDigestData(deps, user);
+      if (list) await deps.sender.sendDm(user.discordId, digestMessage(user.githubLogin, list));
     } catch (err) {
       console.error(`Digest failed for ${user.discordId}:`, err);
     }
