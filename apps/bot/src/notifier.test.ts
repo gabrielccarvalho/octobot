@@ -163,12 +163,23 @@ describe("toneForReason", () => {
   // Asserts EXPLICIT coverage, not just "returns something". toneForReason ends in
   // `?? "working"`, so a test that merely checks the result is a valid Tone can never
   // fail — it would pass for garbage input and silently miss a new reason arriving
-  // from taxonomy.ts without a tone. Check membership in the map instead.
+  // from taxonomy.ts without a tone. Check membership in the map instead. Uses
+  // `.has`, not `in` — REASON_TONE is a Map, so this cannot walk Object.prototype.
   it("gives every known reason an explicit tone rather than the fallback", () => {
-    expect(ALL_REASON_KEYS.filter((key) => !(key in REASON_TONE))).toEqual([]);
+    expect(ALL_REASON_KEYS.filter((key) => !REASON_TONE.has(key))).toEqual([]);
   });
 
   it("falls back to working for unknown reasons GitHub may add later", () => {
     expect(toneForReason("some_future_reason")).toBe("working");
+  });
+
+  // Regression: REASON_TONE used to be a plain object literal, so lookups for
+  // inherited Object.prototype keys (e.g. "constructor", "toString") resolved to
+  // those prototype functions instead of falling through to "working" — silently
+  // producing a non-Tone value that later blew up rendering. A Map has no
+  // prototype-chain lookup, so these must resolve through the fallback.
+  it("falls back to working for prototype-polluting keys instead of resolving Object.prototype members", () => {
+    expect(toneForReason("constructor")).toBe("working");
+    expect(toneForReason("toString")).toBe("working");
   });
 });

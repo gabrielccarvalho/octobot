@@ -185,8 +185,22 @@ describe("attentionMessage / digestMessage", () => {
     expect(msg.tone).toBe("digest");
   });
 
-  it("shares its body with the string formatter minus the header", () => {
-    const msg = digestMessage("octocat", list);
-    expect(formatDigest("octocat", list)).toContain(msg.body);
+  // The previous version of this test asserted formatDigest(...).toContain(msg.body)
+  // using only the empty-list fixture, where it passes vacuously. It doesn't hold in
+  // general: formatDigest clamps header+body together to 2000 chars while digestMessage
+  // clamps the body alone, so a long body can be truncated mid-string in the former and
+  // no longer contain the (unclamped) latter. That divergence is intentional and benign
+  // — Discord embeds and plain-text messages have different budgets — so this replacement
+  // scopes the shared-renderBody claim to where it actually holds: below the clamp
+  // threshold, formatDigest is exactly the header followed by digestMessage's body.
+  it("renders as exactly header + digestMessage's body when nothing needs clamping", () => {
+    const smallList = {
+      incoming: [pr(7, "Fix bug")],
+      mine: [pr(9, "Add feature")],
+      ssoPartialOrgIds: [],
+    };
+    const msg = digestMessage("octocat", smallList);
+    const header = "☀️ **Daily PR digest** for `octocat`";
+    expect(formatDigest("octocat", smallList)).toBe(`${header}\n\n${msg.body}`);
   });
 });

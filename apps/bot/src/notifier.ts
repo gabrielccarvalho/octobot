@@ -72,29 +72,32 @@ const GENERIC_PR_REASONS = new Set(["author", "subscribed", "your_activity", "ma
 const PR_FALLBACK = { emoji: "🔔", label: "Update on your PR" };
 
 // Reason tones carry no colour override — the tone default is correct for all of them.
+// A Map (not a plain object) so lookups can't accidentally resolve inherited
+// Object.prototype keys like "constructor" or "toString" — mirrors the REASON_BY_KEY
+// idiom in taxonomy.ts, which the spec calls out as the pattern to follow.
 // Exported so the test can assert every key in taxonomy.ts has an explicit entry here;
 // without that, toneForReason's fallback would silently swallow a new GitHub reason.
-export const REASON_TONE: Record<string, Tone> = {
-  comment: "chatter",
-  review_requested: "summoned",
-  mention: "summoned",
-  team_mention: "summoned",
-  assign: "summoned",
-  invitation: "summoned",
-  security_alert: "alarm",
-  state_change: "working",
-  author: "working",
-  ci_activity: "working",
-  subscribed: "working",
-  manual: "working",
-  your_activity: "working",
-  push: "working",
-};
+export const REASON_TONE: Map<string, Tone> = new Map([
+  ["comment", "chatter"],
+  ["review_requested", "summoned"],
+  ["mention", "summoned"],
+  ["team_mention", "summoned"],
+  ["assign", "summoned"],
+  ["invitation", "summoned"],
+  ["security_alert", "alarm"],
+  ["state_change", "working"],
+  ["author", "working"],
+  ["ci_activity", "working"],
+  ["subscribed", "working"],
+  ["manual", "working"],
+  ["your_activity", "working"],
+  ["push", "working"],
+]);
 
 // GitHub adds reason values over time; mirror reasonMeta's fallback rather than
 // assuming the known keys are total.
 export function toneForReason(key: string): Tone {
-  return REASON_TONE[key] ?? "working";
+  return REASON_TONE.get(key) ?? "working";
 }
 
 function resolveMeta(item: NotificationItem, outcome: PrOutcome | null): Meta {
