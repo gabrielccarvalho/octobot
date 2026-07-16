@@ -1,7 +1,7 @@
 # Discord Embed Messaging with Mascot Thumbnails
 
 **Date:** 2026-07-16
-**Status:** Approved in outline; one open question (see Open Questions) before planning.
+**Status:** Approved. Ready for implementation planning.
 
 ## Problem
 
@@ -186,9 +186,9 @@ defaults are what the ~13 reason fallbacks and the unknown-reason path actually 
 | `needs_work` | hammer + screwdriver | changes_requested |
 | `summoned` | mention bubble | review_requested, assigned, mentioned, team_mention, invitation, ready_for_review |
 | `chatter` | empty speech bubble | commented, reviewed |
-| `alarm` | red X, panicked | ci_failed, security_alert (+ `closed` — see Open Questions) |
+| `alarm` | red X, panicked | ci_failed, security_alert |
 | `all_good` | green check, thumbs-up | ci_passed |
-| `working` | plain mascot | committed, push, labeled, reopened, converted_to_draft, all generic + unknown fallbacks |
+| `working` | plain mascot | committed, push, labeled, reopened, closed, converted_to_draft, all generic + unknown fallbacks |
 | `broken` | worried + warning triangle | token expired, SSO warning |
 | `digest` | clipboard + clock | daily 06:00 digest |
 
@@ -215,7 +215,7 @@ Colours follow GitHub's semantics where GitHub has one; exceptions are called ou
 | `reviewed` | chatter | `#A371F7` | purple — **only axis separating it from `commented`** |
 | `commented` | chatter | `#58A6FF` | blue |
 | `committed` | working | `#8B949E` | grey |
-| `closed` | alarm | `#848D97` | grey — **see Open Questions** |
+| `closed` | working | `#848D97` | grey — deliberately *not* alarm; see below |
 | `reopened` | working | `#3FB950` | green |
 | `ready_for_review` | summoned | `#58A6FF` | |
 | `converted_to_draft` | working | `#848D97` | grey |
@@ -228,6 +228,14 @@ Two greys are used deliberately and are distinguishable in intent, not hue:
 `#8B949E` = routine activity, `#848D97` = a stopped/inactive state. They are 7/255
 apart and will read identically; this is accepted, since tone art and label carry the
 distinction.
+
+**`closed` maps to `working`, not `alarm`** — the one deliberate departure from the
+approved tone buckets. Alarm's art is a panicking octopus behind a red X; for "your PR
+was closed" that is melodramatic. Alarm is reserved for genuine act-now events
+(`ci_failed`, `security_alert`). This is also the one place the design departs from
+GitHub's colour semantics, which render closed PRs red: a red panic for a closed PR
+overstates it, and grey alongside `converted_to_draft` reads as the stopped state it
+actually is. No new art required.
 
 ### CI checks (`ChecksVerdict` at `checks.ts:3`; verdict computed `checks.ts:20-29`)
 
@@ -433,18 +441,6 @@ New tests:
 - **Renderer**: `OctoMessage` → embed sets thumbnail URL, colour, title, description.
 
 Existing `selectPrEvent` / `PRIORITY` tests (`timeline.ts:37-52`) are untouched.
-
-## Open Questions
-
-**`closed` → `alarm` needs a decision.** The approved bucket put `closed` with
-`ci_failed` under `alarm`, whose art is a panicking octopus behind a red X. For "your
-PR was closed" that is melodramatic — and the grey `#848D97` assigned to it is an
-admission that the art is too loud, compensating with colour. GitHub itself renders
-closed PRs red, so the grey is also the one place "colours follow GitHub's semantics"
-is untrue.
-
-Recommendation: move `closed` → `working` (grey), leaving `alarm` for genuine
-act-now events (`ci_failed`, `security_alert`). Requires no new art.
 
 ## Follow-ups (deliberately out of scope)
 
