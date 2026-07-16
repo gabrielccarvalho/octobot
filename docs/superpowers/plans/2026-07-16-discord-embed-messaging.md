@@ -241,6 +241,7 @@ Additive only — `formatNotification` and `DmSender` are untouched, so the buil
   - `interface OctoMessage { tone: Tone; title: string; body: string; color?: number }`
   - `function notificationMessage(item: NotificationItem, outcome?: PrOutcome | null): OctoMessage`
   - `function toneForReason(key: string): Tone`
+  - `const REASON_TONE: Record<string, Tone>` — exported for the coverage test only
 
 - [ ] **Step 1: Write the failing test**
 
@@ -313,10 +314,12 @@ describe("notificationMessage", () => {
 });
 
 describe("toneForReason", () => {
-  it("maps every known reason key to a tone", () => {
-    for (const key of ALL_REASON_KEYS) {
-      expect(TONE[toneForReason(key)]).toBeDefined();
-    }
+  // Asserts EXPLICIT coverage, not just "returns something". toneForReason ends in
+  // `?? "working"`, so a test that merely checks the result is a valid Tone can never
+  // fail — it would pass for garbage input and silently miss a new reason arriving
+  // from taxonomy.ts without a tone. Check membership in the map instead.
+  it("gives every known reason an explicit tone rather than the fallback", () => {
+    expect(ALL_REASON_KEYS.filter((key) => !(key in REASON_TONE))).toEqual([]);
   });
 
   it("falls back to working for unknown reasons GitHub may add later", () => {
@@ -325,12 +328,13 @@ describe("toneForReason", () => {
 });
 ```
 
-Add these imports at the top of `notifier.test.ts`:
+Add this import at the top of `notifier.test.ts`:
 
 ```ts
 import { ALL_REASON_KEYS } from "./github/taxonomy";
-import { TONE } from "./messages/tone";
 ```
+
+and add `REASON_TONE, toneForReason, notificationMessage` to the existing `./notifier` import.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -414,7 +418,9 @@ Add after `PR_FALLBACK`:
 
 ```ts
 // Reason tones carry no colour override — the tone default is correct for all of them.
-const REASON_TONE: Record<string, Tone> = {
+// Exported so the test can assert every key in taxonomy.ts has an explicit entry here;
+// without that, toneForReason's fallback would silently swallow a new GitHub reason.
+export const REASON_TONE: Record<string, Tone> = {
   comment: "chatter",
   review_requested: "summoned",
   mention: "summoned",
