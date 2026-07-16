@@ -37,18 +37,33 @@ export const metadata: Metadata = {
   authors: [{ name: "OctoBot" }],
   openGraph: {
     type: "website",
+    url: "https://octobot.dev",
+    locale: "en_US",
     title: "OctoBot — GitHub, in your DMs",
     description:
       "Get a Discord DM the moment a GitHub review, mention, or CI failure needs you. Open source, one click to connect.",
     siteName: "OctoBot",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "OctoBot" }],
+    images: [
+      {
+        url: "/og.png?v=2",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+        alt: "GitHub, in your DMs — the OctoBot octopus mascot glowing underwater, above the tagline: get a Discord DM the moment GitHub needs you.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "OctoBot — GitHub, in your DMs",
     description:
       "Get a Discord DM the moment a GitHub review, mention, or CI failure needs you. One click to connect.",
-    images: ["/og.png"],
+    images: [
+      {
+        url: "/og.png?v=2",
+        alt: "GitHub, in your DMs — the OctoBot octopus mascot glowing underwater, above the tagline: get a Discord DM the moment GitHub needs you.",
+      },
+    ],
   },
 }
 
