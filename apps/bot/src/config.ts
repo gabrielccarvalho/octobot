@@ -7,7 +7,11 @@ export interface Config {
   githubOAuthClientSecret: string;
   tokenEncryptionKey: string;
   publicBaseUrl: string;
+  mascotBaseUrl: string;
 }
+
+// Optional, unlike everything in REQUIRED: self-hosters inherit working images.
+const DEFAULT_MASCOT_BASE_URL = "https://octobot.dev/mascot";
 
 const REQUIRED = [
   "DISCORD_TOKEN",
@@ -45,5 +49,6 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     githubOAuthClientSecret: env.GITHUB_OAUTH_CLIENT_SECRET!.trim(),
     tokenEncryptionKey: key,
     publicBaseUrl: env.PUBLIC_BASE_URL!.trim().replace(/\/+$/, ""),
+    mascotBaseUrl: (env.MASCOT_BASE_URL?.trim() || DEFAULT_MASCOT_BASE_URL).replace(/\/+$/, ""),
   };
 }

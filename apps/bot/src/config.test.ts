@@ -35,4 +35,19 @@ describe("loadConfig", () => {
   it("throws when TOKEN_ENCRYPTION_KEY is not 64 hex chars", () => {
     expect(() => loadConfig({ ...base, TOKEN_ENCRYPTION_KEY: "tooshort" })).toThrowError(/TOKEN_ENCRYPTION_KEY/);
   });
+
+  it("defaults mascotBaseUrl when MASCOT_BASE_URL is unset", () => {
+    expect(loadConfig(base).mascotBaseUrl).toBe("https://octobot.dev/mascot");
+  });
+
+  it("overrides mascotBaseUrl and strips trailing slashes", () => {
+    const cfg = loadConfig({ ...base, MASCOT_BASE_URL: "https://cdn.example.com/art///" });
+    expect(cfg.mascotBaseUrl).toBe("https://cdn.example.com/art");
+  });
+
+  it("falls back to the default when MASCOT_BASE_URL is blank", () => {
+    expect(loadConfig({ ...base, MASCOT_BASE_URL: "   " }).mascotBaseUrl).toBe(
+      "https://octobot.dev/mascot"
+    );
+  });
 });
