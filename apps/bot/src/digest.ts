@@ -1,7 +1,7 @@
 import type { Database, User } from "./db";
 import type { SearchResult } from "./github/search";
 import type { DmSender } from "./notifier";
-import { formatDigest } from "./status";
+import { formatDigest, type AttentionList } from "./status";
 
 export interface DigestDeps {
   db: Database;
@@ -16,7 +16,10 @@ export interface DigestDeps {
 // Returns null when there is truly nothing to report. If PRs were filtered out
 // by an SSO-restricted org, we still DM a warning-only digest so a user whose
 // PRs live entirely inside that org isn't left silently digest-less.
-export async function buildDigest(deps: DigestDeps, user: User): Promise<string | null> {
+export async function buildDigestData(
+  deps: DigestDeps,
+  user: User
+): Promise<AttentionList | null> {
   const token = deps.decryptToken(user);
   const [incomingResult, mineResult] = await Promise.all([
     deps.searchPullRequests(token, deps.awaitingQuery),
@@ -28,7 +31,14 @@ export async function buildDigest(deps: DigestDeps, user: User): Promise<string 
     ...new Set([...incomingResult.ssoPartialOrgIds, ...mineResult.ssoPartialOrgIds]),
   ];
   if (incoming.length === 0 && mine.length === 0 && ssoPartialOrgIds.length === 0) return null;
-  return formatDigest(user.githubLogin, { incoming, mine, ssoPartialOrgIds });
+  return { incoming, mine, ssoPartialOrgIds };
+}
+
+// Plain-text digest for the /digest "Preview now" button (client.ts:158), which is an
+// ephemeral command reply and deliberately stays a string.
+export async function buildDigest(deps: DigestDeps, user: User): Promise<string | null> {
+  const list = await buildDigestData(deps, user);
+  return list ? formatDigest(user.githubLogin, list) : null;
 }
 
 export async function sendDigests(deps: DigestDeps): Promise<void> {

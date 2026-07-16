@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createDatabase, type Database, type User } from "./db";
-import { buildDigest, sendDigests, type DigestDeps } from "./digest";
+import { buildDigest, buildDigestData, sendDigests, type DigestDeps } from "./digest";
 import type { DmSender } from "./notifier";
 import type { PrSummary, SearchResult } from "./github/search";
 
@@ -112,5 +112,27 @@ describe("sendDigests", () => {
       throw Object.assign(new Error("boom"), { query });
     };
     await expect(sendDigests(d)).resolves.toBeUndefined();
+  });
+});
+
+describe("buildDigestData", () => {
+  it("returns null when there is nothing to report", async () => {
+    const user = db.getUser("d1")!;
+    expect(await buildDigestData(deps({ AWAITING: [], MINE: [] }), user)).toBeNull();
+  });
+
+  it("returns the list when a warning-only digest is warranted", async () => {
+    const user = db.getUser("d1")!;
+    const d = deps({ AWAITING: [], MINE: [] }, { AWAITING: ["21955855"], MINE: ["21955855"] });
+    const list = await buildDigestData(d, user);
+    expect(list).not.toBeNull();
+    expect(list!.ssoPartialOrgIds).toEqual(["21955855"]);
+  });
+
+  it("still backs buildDigest's string output unchanged", async () => {
+    const user = db.getUser("d1")!;
+    const msg = await buildDigest(deps({ AWAITING: [pr(7)], MINE: [] }), user);
+    expect(msg).toContain("Daily PR digest");
+    expect(msg).toContain("#7");
   });
 });
