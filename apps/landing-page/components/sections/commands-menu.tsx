@@ -81,18 +81,21 @@ export function CommandsMenu() {
             <code className="shrink-0 rounded bg-primary/15 px-2 py-1 font-mono text-sm text-primary">
               {current.name}
             </code>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.p
-                key={current.name}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="min-w-0 truncate text-sm text-muted-foreground sm:whitespace-normal"
-              >
-                {current.body}
-              </motion.p>
-            </AnimatePresence>
+            {/* Fixed two-line slot so one- vs two-line descriptions don't resize the bar */}
+            <div className="min-w-0 flex-1 sm:flex sm:min-h-10 sm:items-center">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.p
+                  key={current.name}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2 }}
+                  className="min-w-0 truncate text-sm text-muted-foreground sm:whitespace-normal"
+                >
+                  {current.body}
+                </motion.p>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </FadeUp>
