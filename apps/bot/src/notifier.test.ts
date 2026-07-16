@@ -6,6 +6,8 @@ import {
   type PrOutcome,
 } from "./notifier";
 import type { NotificationItem } from "./github/notifications";
+import type { PrEventKind } from "./github/timeline";
+import type { Tone } from "./messages/tone";
 import { ALL_REASON_KEYS } from "./github/taxonomy";
 
 const item: NotificationItem = {
@@ -63,10 +65,6 @@ describe("notificationMessage", () => {
     expect(commented.color).toBe(0x58a6ff);
   });
 
-  it("maps closed to working, not alarm", () => {
-    expect(notificationMessage(item, { source: "event", kind: "closed" }).tone).toBe("working");
-  });
-
   it("maps CI verdicts", () => {
     expect(notificationMessage(item, { source: "checks", verdict: "passed" }).tone).toBe("all_good");
     expect(notificationMessage(item, { source: "checks", verdict: "failed" }).tone).toBe("alarm");
@@ -83,6 +81,81 @@ describe("notificationMessage", () => {
   it("falls back to a reason tone for non-PR subjects", () => {
     const issue = { ...item, subjectType: "Issue", reason: "comment" };
     expect(notificationMessage(issue).tone).toBe("chatter");
+  });
+});
+
+// The design spec is the source of truth for PR_EVENT_META, not notifier.ts itself —
+// asserting against a re-derivation of the implementation would be circular and could
+// never catch a transposed emoji/label/tone/color in the table.
+const EXPECTED_EVENT_META: Record<
+  PrEventKind,
+  { emoji: string; label: string; tone: Tone; color: number }
+> = {
+  merged: { emoji: "🎉", label: "Your PR was merged", tone: "celebrate", color: 0x8957e5 },
+  approved: { emoji: "✅", label: "Your PR was approved", tone: "celebrate", color: 0x3fb950 },
+  changes_requested: {
+    emoji: "🔧",
+    label: "Changes requested on your PR",
+    tone: "needs_work",
+    color: 0xd29922,
+  },
+  reviewed: { emoji: "💬", label: "New review on your PR", tone: "chatter", color: 0xa371f7 },
+  commented: { emoji: "💬", label: "New comment on your PR", tone: "chatter", color: 0x58a6ff },
+  committed: { emoji: "📌", label: "New commits on your PR", tone: "working", color: 0x8b949e },
+  closed: { emoji: "🚪", label: "Your PR was closed", tone: "working", color: 0x848d97 },
+  reopened: { emoji: "🔓", label: "Your PR was reopened", tone: "working", color: 0x3fb950 },
+  ready_for_review: {
+    emoji: "📝",
+    label: "Marked ready for review",
+    tone: "summoned",
+    color: 0x58a6ff,
+  },
+  converted_to_draft: {
+    emoji: "📄",
+    label: "Converted to draft",
+    tone: "working",
+    color: 0x848d97,
+  },
+  assigned: { emoji: "👤", label: "You were assigned", tone: "summoned", color: 0x58a6ff },
+  labeled: { emoji: "🏷️", label: "Labels changed on your PR", tone: "working", color: 0x8b949e },
+  review_requested: { emoji: "🔔", label: "Review requested", tone: "summoned", color: 0x58a6ff },
+  mentioned: { emoji: "📣", label: "Mentioned", tone: "summoned", color: 0xd29922 },
+};
+
+// TypeScript forces this literal to have a key for every PrEventKind. If a 15th kind is
+// added to timeline.ts without a matching row above, this record fails to compile —
+// `tsc --noEmit` catches it even though EXPECTED_EVENT_META itself is separately typed.
+const ALL_EVENT_KINDS: Record<PrEventKind, true> = {
+  merged: true,
+  approved: true,
+  changes_requested: true,
+  reviewed: true,
+  commented: true,
+  committed: true,
+  closed: true,
+  reopened: true,
+  ready_for_review: true,
+  converted_to_draft: true,
+  assigned: true,
+  labeled: true,
+  review_requested: true,
+  mentioned: true,
+};
+
+describe("PR_EVENT_META coverage (exhaustive per-kind)", () => {
+  const kinds = Object.keys(ALL_EVENT_KINDS) as PrEventKind[];
+
+  it("covers every PrEventKind with no extras and no gaps", () => {
+    expect(kinds.length).toBe(14);
+    expect(Object.keys(EXPECTED_EVENT_META).sort()).toEqual([...kinds].sort());
+  });
+
+  it.each(kinds)("renders title, tone, and color for %s", (kind) => {
+    const expected = EXPECTED_EVENT_META[kind];
+    const msg = notificationMessage(item, { source: "event", kind });
+    expect(msg.title).toBe(`${expected.emoji} ${expected.label}`);
+    expect(msg.tone).toBe(expected.tone);
+    expect(msg.color).toBe(expected.color);
   });
 });
 
