@@ -1,6 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createDatabase, type Database, type User } from "./db";
-import { pollUser, type PollerDeps } from "./poller";
+import {
+  pollUser,
+  startPoller,
+  nextPollDelayMs,
+  POLL_BACKOFF_CAP_MS,
+  POLL_FAILURE_ALERT_THRESHOLD,
+  type PollerDeps,
+} from "./poller";
 import type { FetchResult } from "./github/notifications";
 import type { DmSender, OctoMessage } from "./notifier";
 import type { PrEvent } from "./github/timeline";
@@ -249,5 +256,106 @@ describe("SSO partial-results warning", () => {
     expect(db.getMeta(ssoKey)).toBeNull();
     expect(sent).toHaveLength(1); // the PR notification still went out
     expect(db.wasNotified("d1", "t1", prItem.updatedAt)).toBe(true);
+  });
+});
+
+describe("poll-failure alert", () => {
+  const fail = (): FetchResult => ({ status: 503, items: [], lastModified: null, pollInterval: 60, ssoPartialOrgIds: [] });
+  const ok = (): FetchResult => ({ status: 200, items: [], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] });
+
+  it("does not advance the watermark on a failure", async () => {
+    nextResult = fail();
+    await pollUser(deps(), user());
+    expect(db.getUser("d1")!.lastModified).toBe("Mon"); // unchanged; thread will replay after recovery
+  });
+
+  it("warns exactly once, on the tick the streak crosses the threshold", async () => {
+    nextResult = fail();
+    for (let i = 0; i < POLL_FAILURE_ALERT_THRESHOLD - 1; i++) {
+      await pollUser(deps(), user());
+      expect(sent).toHaveLength(0); // still quiet below the threshold
+    }
+    await pollUser(deps(), user()); // crosses
+    expect(sent).toHaveLength(1);
+    expect(sent[0].message.title).toMatch(/Can't reach/i);
+    expect(sent[0].message.body).not.toMatch(/reconnect|expired|revoked/i); // token is fine, no action needed
+
+    await pollUser(deps(), user()); // further failures stay silent
+    await pollUser(deps(), user());
+    expect(sent).toHaveLength(1);
+  });
+
+  it("resets the streak on a success, so a later outage warns again", async () => {
+    nextResult = fail();
+    for (let i = 0; i < POLL_FAILURE_ALERT_THRESHOLD; i++) await pollUser(deps(), user());
+    expect(sent).toHaveLength(1);
+
+    nextResult = ok(); // recovery clears the streak
+    await pollUser(deps(), user());
+
+    nextResult = fail(); // a fresh outage must climb the full threshold again
+    for (let i = 0; i < POLL_FAILURE_ALERT_THRESHOLD - 1; i++) await pollUser(deps(), user());
+    expect(sent).toHaveLength(1);
+    await pollUser(deps(), user());
+    expect(sent).toHaveLength(2);
+  });
+
+  it("clears the streak on a 304 too", async () => {
+    nextResult = fail();
+    await pollUser(deps(), user());
+    expect(db.getMeta("poll_fail:d1")).toBe("1");
+    nextResult = { status: 304, items: [], lastModified: null, pollInterval: 60, ssoPartialOrgIds: [] };
+    await pollUser(deps(), user());
+    expect(db.getMeta("poll_fail:d1")).toBe("");
+  });
+});
+
+describe("nextPollDelayMs", () => {
+  it("uses the base interval when healthy", () => {
+    expect(nextPollDelayMs(0, 0, 60_000)).toBe(60_000);
+  });
+
+  it("never polls faster than GitHub's requested x-poll-interval floor", () => {
+    expect(nextPollDelayMs(0, 90, 60_000)).toBe(90_000); // 90s floor beats the 60s base
+  });
+
+  it("adds no extra delay on the first failed tick", () => {
+    expect(nextPollDelayMs(1, 0, 60_000)).toBe(60_000);
+  });
+
+  it("backs off exponentially on sustained failure", () => {
+    expect(nextPollDelayMs(2, 0, 60_000)).toBe(120_000);
+    expect(nextPollDelayMs(3, 0, 60_000)).toBe(240_000);
+    expect(nextPollDelayMs(4, 0, 60_000)).toBe(480_000);
+  });
+
+  it("caps the backoff", () => {
+    expect(nextPollDelayMs(20, 0, 60_000)).toBe(POLL_BACKOFF_CAP_MS);
+  });
+});
+
+describe("startPoller", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("polls immediately, reschedules, and stops cleanly", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const d: PollerDeps = {
+      ...deps(),
+      fetchNotifications: async () => {
+        calls++;
+        return { status: 200, items: [], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+      },
+    };
+    const poller = startPoller(d, 60_000);
+    await vi.advanceTimersByTimeAsync(0); // flush the immediate tick
+    expect(calls).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(60_000); // next scheduled tick fires
+    expect(calls).toBe(2);
+
+    poller.stop();
+    await vi.advanceTimersByTimeAsync(120_000); // no further ticks after stop
+    expect(calls).toBe(2);
   });
 });

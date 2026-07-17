@@ -15,19 +15,69 @@ export interface PollerDeps {
   fetchChecksVerdict(token: string, repoFullName: string, prNumber: number): Promise<ChecksVerdict | null>;
 }
 
-export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
-  if (!user.lastModified) return; // not yet baselined by onboarding; skip to avoid a flood
+// The result of one poll, so the scheduler can honor GitHub's requested interval
+// and back off while the API is failing. status 0 means "did not fetch" (user not
+// yet baselined, or a local decrypt error) — neither healthy nor a GitHub failure.
+export interface PollOutcome {
+  status: number;
+  pollInterval: number; // seconds GitHub asked us to wait; 0 when unknown
+}
+
+// Consecutive failed fetches before we warn the user once that their notifications
+// are paused. Small enough to catch a real outage, large enough to ride out a blip.
+export const POLL_FAILURE_ALERT_THRESHOLD = 3;
+
+function pollFailMetaKey(discordId: string): string {
+  return `poll_fail:${discordId}`;
+}
+
+// Clear a user's failure streak on any successful fetch. Only writes on the
+// transition, so healthy ticks stay write-free.
+function clearPollFailure(deps: PollerDeps, discordId: string): void {
+  if (deps.db.getMeta(pollFailMetaKey(discordId))) {
+    deps.db.setMeta(pollFailMetaKey(discordId), "");
+  }
+}
+
+// Record a failed fetch and, exactly on the tick the streak crosses the threshold,
+// DM the user once. The token is fine (that's the 401 path), so this asks for no
+// action — it just makes the silence explainable instead of looking like "nothing new".
+async function notePollFailure(deps: PollerDeps, discordId: string): Promise<void> {
+  const key = pollFailMetaKey(discordId);
+  const count = Number(deps.db.getMeta(key) ?? "0") + 1;
+  deps.db.setMeta(key, String(count));
+  if (count !== POLL_FAILURE_ALERT_THRESHOLD) return;
+  try {
+    await deps.sender.sendDm(discordId, {
+      tone: "broken",
+      color: 0xd29922, // amber: degraded, no user action needed (unlike the red 401 break)
+      title: "⚠️ Can't reach your GitHub notifications",
+      body:
+        "GitHub has been returning errors for the last few minutes, so I've paused " +
+        "checking your notifications. I'll keep retrying and they'll resume automatically " +
+        "once it recovers — no action needed. `/status` may still work in the meantime.",
+    });
+  } catch (err) {
+    console.warn(`Failed to DM poll-failure notice to ${discordId}:`, err);
+  }
+}
+
+export async function pollUser(deps: PollerDeps, user: User): Promise<PollOutcome> {
+  if (!user.lastModified) return { status: 0, pollInterval: 0 }; // not yet baselined; skip to avoid a flood
   let token: string;
   try {
     token = deps.decryptToken(user);
   } catch (err) {
     console.error(`Failed to decrypt token for ${user.discordId}:`, err);
-    return;
+    return { status: 0, pollInterval: 0 };
   }
 
   const res = await deps.fetchNotifications(token, user.lastModified);
 
-  if (res.status === 304) return;
+  if (res.status === 304) {
+    clearPollFailure(deps, user.discordId);
+    return { status: 304, pollInterval: res.pollInterval };
+  }
 
   if (res.status === 401) {
     try {
@@ -41,13 +91,16 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
       console.warn(`Failed to DM revocation notice to ${user.discordId}:`, err);
     }
     deps.db.deleteUser(user.discordId);
-    return;
+    return { status: 401, pollInterval: res.pollInterval };
   }
 
   if (res.status !== 200) {
     console.warn(`Notifications fetch for ${user.discordId} returned ${res.status}`);
-    return;
+    await notePollFailure(deps, user.discordId);
+    return { status: res.status, pollInterval: res.pollInterval };
   }
+
+  clearPollFailure(deps, user.discordId);
 
   const ssoKey = ssoWarnedMetaKey(user.discordId);
   if (res.ssoPartialOrgIds.length > 0) {
@@ -107,19 +160,59 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<void> {
       console.warn(`Failed to DM ${user.discordId} for thread ${item.threadId}:`, err);
     }
   }
+
+  return { status: 200, pollInterval: res.pollInterval };
 }
 
-export function startPoller(deps: PollerDeps, intervalMs = 60_000): { stop(): void } {
+// Don't let exponential backoff drift beyond this even during a long outage.
+export const POLL_BACKOFF_CAP_MS = 15 * 60_000;
+
+// How long to wait before the next tick. Never faster than the base interval or
+// GitHub's requested x-poll-interval floor; after consecutive failing ticks, back
+// off exponentially (first failure adds no extra delay) up to the cap.
+export function nextPollDelayMs(
+  failedTicks: number,
+  maxPollIntervalSec: number,
+  baseIntervalMs: number,
+  capMs = POLL_BACKOFF_CAP_MS
+): number {
+  const floor = Math.max(baseIntervalMs, maxPollIntervalSec * 1000);
+  if (failedTicks <= 0) return floor;
+  return Math.min(floor * 2 ** (failedTicks - 1), Math.max(floor, capMs));
+}
+
+export function startPoller(deps: PollerDeps, baseIntervalMs = 60_000): { stop(): void } {
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let failedTicks = 0;
+
   const tick = async () => {
+    let maxPollInterval = 0;
+    let polled = false; // at least one user actually hit the API this tick
+    let healthy = false; // at least one of those got 200/304
     for (const user of deps.db.getAllUsers()) {
       try {
-        await pollUser(deps, user);
+        const outcome = await pollUser(deps, user);
+        if (outcome.status !== 0) polled = true;
+        if (outcome.status === 200 || outcome.status === 304) healthy = true;
+        if (outcome.pollInterval > maxPollInterval) maxPollInterval = outcome.pollInterval;
       } catch (err) {
         console.error(`Poll failed for ${user.discordId}:`, err);
+        polled = true; // a thrown poll is still a failed attempt, not a quiet tick
       }
     }
+
+    // Back off only when everything we tried failed; a single success clears it.
+    failedTicks = polled && !healthy ? failedTicks + 1 : 0;
+    const delay = nextPollDelayMs(failedTicks, maxPollInterval, baseIntervalMs);
+    if (!stopped) timer = setTimeout(() => void tick(), delay);
   };
-  const handle = setInterval(() => void tick(), intervalMs);
+
   void tick(); // run an initial pass immediately
-  return { stop: () => clearInterval(handle) };
+  return {
+    stop: () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    },
+  };
 }

@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { parseNotifications, toHtmlUrl, fetchNotifications } from "./notifications";
+import { parseNotifications, toHtmlUrl, fetchNotifications, sinceParam } from "./notifications";
 import type { FetchLike } from "./http";
+
+// Captures the URL and init the implementation is called with, then returns a 304.
+function capturingFetch(): { fetch: FetchLike; calls: { url: string; init: any }[] } {
+  const calls: { url: string; init: any }[] = [];
+  const fetch: FetchLike = async (url, init) => {
+    calls.push({ url, init });
+    return { status: 304, ok: false, headers: { get: () => null }, json: async () => null, text: async () => "" };
+  };
+  return { fetch, calls };
+}
 
 const prRaw = {
   id: "t1",
@@ -101,5 +111,39 @@ describe("fetchNotifications", () => {
   it("has no SSO partial orgs when the header is absent", async () => {
     const res = await fetchNotifications("tok", null, fakeFetch(200, [prRaw]));
     expect(res.ssoPartialOrgIds).toEqual([]);
+  });
+
+  it("requests all=true (read + unread) so opened threads aren't silently dropped", async () => {
+    const { fetch, calls } = capturingFetch();
+    await fetchNotifications("tok", "Mon, 01 Jan 2026 00:00:00 GMT", fetch);
+    const url = new URL(calls[0].url);
+    expect(url.searchParams.get("all")).toBe("true");
+  });
+
+  it("bounds the list with a since param derived from the last-modified watermark", async () => {
+    const { fetch, calls } = capturingFetch();
+    await fetchNotifications("tok", "Mon, 01 Jan 2026 00:00:00 GMT", fetch);
+    const url = new URL(calls[0].url);
+    expect(url.searchParams.get("since")).toBe("2026-01-01T00:00:00.000Z");
+    expect(calls[0].init.headers["if-modified-since"]).toBe("Mon, 01 Jan 2026 00:00:00 GMT");
+  });
+
+  it("omits since when there is no baseline watermark", async () => {
+    const { fetch, calls } = capturingFetch();
+    await fetchNotifications("tok", null, fetch);
+    const url = new URL(calls[0].url);
+    expect(url.searchParams.has("since")).toBe(false);
+    expect(calls[0].init.headers["if-modified-since"]).toBeUndefined();
+  });
+});
+
+describe("sinceParam", () => {
+  it("converts an HTTP date to an ISO 8601 timestamp", () => {
+    expect(sinceParam("Mon, 01 Jan 2026 00:00:00 GMT")).toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  it("returns null for a null or unparseable watermark", () => {
+    expect(sinceParam(null)).toBeNull();
+    expect(sinceParam("Mon")).toBeNull(); // the fake watermark poller tests use
   });
 });

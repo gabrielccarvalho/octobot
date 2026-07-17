@@ -65,6 +65,15 @@ export function parseNotifications(raw: RawNotification[]): NotificationItem[] {
   });
 }
 
+// The stored watermark is a Last-Modified HTTP date (RFC 7231); the `since` query
+// param needs ISO 8601. Convert when it's a real date, else omit (e.g. onboarding's
+// null baseline, or a fake watermark in tests).
+export function sinceParam(lastModified: string | null): string | null {
+  if (!lastModified) return null;
+  const ms = Date.parse(lastModified);
+  return Number.isNaN(ms) ? null : new Date(ms).toISOString();
+}
+
 export async function fetchNotifications(
   token: string,
   lastModified: string | null,
@@ -76,7 +85,16 @@ export async function fetchNotifications(
   };
   if (lastModified) headers["if-modified-since"] = lastModified;
 
-  const res = await fetchImpl("https://api.github.com/notifications?all=false", { headers });
+  // all=true (not just unread) so a thread the user opens on github.com during an
+  // outage isn't silently dropped before we deliver it — the poller's wasNotified
+  // dedupe stops re-sends. `since` bounds that fuller list to what changed since our
+  // last successful poll, keeping it small enough to stay complete on page one.
+  const url = new URL("https://api.github.com/notifications");
+  url.searchParams.set("all", "true");
+  const since = sinceParam(lastModified);
+  if (since) url.searchParams.set("since", since);
+
+  const res = await fetchImpl(url.toString(), { headers });
   const pollInterval = Number(res.headers.get("x-poll-interval") ?? "60");
   const newLastModified = res.headers.get("last-modified");
 
