@@ -13,6 +13,7 @@ export interface PollerDeps {
   fetchNotifications(token: string, lastModified: string | null): Promise<FetchResult>;
   fetchPrEvent(token: string, repoFullName: string, prNumber: number, at: string): Promise<PrEvent | null>;
   fetchChecksVerdict(token: string, repoFullName: string, prNumber: number): Promise<ChecksVerdict | null>;
+  fetchPrAuthor(token: string, repoFullName: string, prNumber: number): Promise<string | null>;
 }
 
 // The result of one poll, so the scheduler can honor GitHub's requested interval
@@ -60,6 +61,12 @@ async function notePollFailure(deps: PollerDeps, discordId: string): Promise<voi
   } catch (err) {
     console.warn(`Failed to DM poll-failure notice to ${discordId}:`, err);
   }
+}
+
+// Did the viewer themselves perform this event? Login comparison is case-insensitive
+// because GitHub preserves case in the timeline but treats logins case-insensitively.
+function isSelfActivity(event: PrEvent, viewerLogin: string): boolean {
+  return !!event.by && !!viewerLogin && event.by.toLowerCase() === viewerLogin.toLowerCase();
 }
 
 export async function pollUser(deps: PollerDeps, user: User): Promise<PollOutcome> {
@@ -135,11 +142,17 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<PollOutcom
     if (subs.reasons !== null && !subs.reasons.has(item.reason)) continue;
     if (deps.db.wasNotified(user.discordId, item.threadId, item.updatedAt)) continue;
     let outcome: PrOutcome | null = null;
+    let selfActivity = false;
     if (item.subjectType === "PullRequest" && item.subjectNumber != null) {
       try {
         const event = await deps.fetchPrEvent(token, item.repoFullName, item.subjectNumber, item.updatedAt);
         if (event) {
-          outcome = { source: "event", kind: event.kind };
+          // The event that surfaced this thread was performed by the viewer (e.g. they
+          // approved a PR they were reviewing). The author-centric labels would echo it
+          // back as "Your PR was approved"; suppress instead — you don't need a DM about
+          // something you just did, and it isn't your PR.
+          if (isSelfActivity(event, user.githubLogin)) selfActivity = true;
+          else outcome = { source: "event", kind: event.kind };
         } else if (item.reason === "ci_activity") {
           // selectPrEvent also returns null for unmapped-but-notifying events (rename,
           // dismissed review, cross-reference, base-branch force-push); only probe CI
@@ -153,8 +166,23 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<PollOutcom
         console.warn(`Event enrichment failed for ${user.discordId} thread ${item.threadId}:`, err);
       }
     }
+    if (selfActivity) {
+      // Mark seen so this self-action isn't reconsidered on every future tick.
+      deps.db.markNotified(user.discordId, item.threadId, item.updatedAt);
+      continue;
+    }
+
+    // Frame possessively ("Your PR") only when the viewer authored the PR. reason
+    // "author" is GitHub's own "you created this thread" signal, so trust it without a
+    // round-trip; otherwise confirm against the PR author (an unknown author stays
+    // non-possessive, never falsely "yours").
+    let isAuthor = true;
+    if (item.subjectType === "PullRequest" && item.reason !== "author" && item.subjectNumber != null) {
+      const author = await deps.fetchPrAuthor(token, item.repoFullName, item.subjectNumber);
+      isAuthor = author != null && author.toLowerCase() === user.githubLogin.toLowerCase();
+    }
     try {
-      await deps.sender.sendDm(user.discordId, notificationMessage(item, outcome));
+      await deps.sender.sendDm(user.discordId, notificationMessage(item, outcome, isAuthor));
       deps.db.markNotified(user.discordId, item.threadId, item.updatedAt);
     } catch (err) {
       console.warn(`Failed to DM ${user.discordId} for thread ${item.threadId}:`, err);

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   searchPullRequests,
   searchMyPrsAwaitingReview,
+  fetchPrAuthor,
   QUERY_AWAITING_MY_REVIEW,
   QUERY_MY_OPEN_PRS,
 } from "./search";
@@ -179,5 +180,36 @@ describe("searchMyPrsAwaitingReview", () => {
     expect(pr2?.requestedReviewers).toBeUndefined();
     const pr1 = res.prs.find((p) => p.number === 1);
     expect(pr1?.requestedReviewers).toEqual([]);
+  });
+});
+
+describe("fetchPrAuthor", () => {
+  const fakeFetch = (status: number, body: unknown): FetchLike => async () => ({
+    status,
+    ok: status < 400,
+    headers: { get: () => null },
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  });
+
+  it("returns the PR author login", async () => {
+    expect(await fetchPrAuthor("tok", "acme/repo", 42, fakeFetch(200, { user: { login: "khalil376" } }))).toBe(
+      "khalil376"
+    );
+  });
+
+  it("returns null on a non-2xx response", async () => {
+    expect(await fetchPrAuthor("tok", "acme/repo", 42, fakeFetch(404, null))).toBeNull();
+  });
+
+  it("returns null when the author login is missing", async () => {
+    expect(await fetchPrAuthor("tok", "acme/repo", 42, fakeFetch(200, {}))).toBeNull();
+  });
+
+  it("returns null instead of throwing when the fetch fails", async () => {
+    const throwing: FetchLike = async () => {
+      throw new Error("network");
+    };
+    expect(await fetchPrAuthor("tok", "acme/repo", 42, throwing)).toBeNull();
   });
 });

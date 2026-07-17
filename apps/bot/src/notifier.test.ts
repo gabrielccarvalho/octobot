@@ -82,6 +82,56 @@ describe("notificationMessage", () => {
     const issue = { ...item, subjectType: "Issue", reason: "comment" };
     expect(notificationMessage(issue).tone).toBe("chatter");
   });
+
+  describe("author-aware framing (isAuthor)", () => {
+    it("uses possessive framing by default and when isAuthor is true", () => {
+      expect(notificationMessage(item, { source: "event", kind: "approved" }).title).toBe(
+        "✅ Your PR was approved"
+      );
+      expect(notificationMessage(item, { source: "event", kind: "merged" }, true).title).toBe(
+        "🎉 Your PR was merged"
+      );
+    });
+
+    it("uses 'PR #N' framing for events when isAuthor is false", () => {
+      const t = (kind: PrEventKind) => notificationMessage(item, { source: "event", kind }, false).title;
+      expect(t("approved")).toBe("✅ PR #42 was approved");
+      expect(t("merged")).toBe("🎉 PR #42 was merged");
+      expect(t("changes_requested")).toBe("🔧 Changes requested on PR #42");
+      expect(t("commented")).toBe("💬 New comment on PR #42");
+      expect(t("committed")).toBe("📌 New commits on PR #42");
+      expect(t("closed")).toBe("🚪 PR #42 was closed");
+      expect(t("labeled")).toBe("🏷️ Labels changed on PR #42");
+    });
+
+    it("keeps viewer-centric labels unchanged when isAuthor is false", () => {
+      // These describe the viewer, not the PR, so there's nothing possessive to rewrite.
+      expect(notificationMessage(item, { source: "event", kind: "assigned" }, false).title).toBe(
+        "👤 You were assigned"
+      );
+      expect(notificationMessage(item, { source: "event", kind: "mentioned" }, false).title).toBe(
+        "📣 Mentioned"
+      );
+      expect(notificationMessage(item, { source: "event", kind: "review_requested" }, false).title).toBe(
+        "🔔 Review requested"
+      );
+    });
+
+    it("frames CI verdicts with 'PR #N' for a non-author", () => {
+      expect(notificationMessage(item, { source: "checks", verdict: "failed" }, false).title).toBe(
+        "❌ CI failed on PR #42"
+      );
+      expect(notificationMessage(item, { source: "checks", verdict: "passed" }, true).title).toBe(
+        "✅ CI passed on your PR"
+      );
+    });
+
+    it("frames the generic PR fallback with 'PR #N' for a non-author", () => {
+      const subscribed = { ...item, reason: "subscribed" };
+      expect(notificationMessage(subscribed, null, false).title).toBe("🔔 Update on PR #42");
+      expect(notificationMessage(authorItem, null, true).title).toBe("🔔 Update on your PR");
+    });
+  });
 });
 
 // The design spec is the source of truth for PR_EVENT_META, not notifier.ts itself —

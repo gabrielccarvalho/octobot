@@ -19,6 +19,7 @@ export type PrEventKind =
 export interface PrEvent {
   kind: PrEventKind;
   at: string;
+  by?: string; // login of who performed the event, when GitHub attributes one
 }
 
 interface RawTimelineEvent {
@@ -28,6 +29,8 @@ interface RawTimelineEvent {
   submitted_at?: string;
   committer?: { date?: string };
   author?: { date?: string };
+  actor?: { login?: string };
+  user?: { login?: string }; // review events carry the reviewer here, not in `actor`
 }
 
 // Absorb clock drift between GitHub's notification timestamp and the event timestamp.
@@ -54,6 +57,12 @@ const PRIORITY: Record<PrEventKind, number> = {
 function eventTime(raw: RawTimelineEvent): number | null {
   const t = raw.submitted_at ?? raw.created_at ?? raw.committer?.date ?? raw.author?.date;
   return t ? Date.parse(t) : null;
+}
+
+// Who performed the event. Reviews put the reviewer in `user`; most other events
+// use `actor`. Commits carry only git identities (no login), so they resolve to null.
+function eventActor(raw: RawTimelineEvent): string | null {
+  return raw.actor?.login ?? raw.user?.login ?? null;
 }
 
 function toKind(raw: RawTimelineEvent): PrEventKind | null {
@@ -104,7 +113,7 @@ function toKind(raw: RawTimelineEvent): PrEventKind | null {
 // selectable event whose timestamp is the latest at or before `at` (+ skew).
 export function selectPrEvent(raw: RawTimelineEvent[], at: string): PrEvent | null {
   const cutoff = Date.parse(at) + SKEW_MS;
-  let best: { kind: PrEventKind; ms: number; ts: string } | null = null;
+  let best: { kind: PrEventKind; ms: number; ts: string; by: string | null } | null = null;
   for (const e of raw) {
     const kind = toKind(e);
     if (!kind) continue;
@@ -112,10 +121,13 @@ export function selectPrEvent(raw: RawTimelineEvent[], at: string): PrEvent | nu
     if (ms == null || ms > cutoff) continue;
     const ts = e.submitted_at ?? e.created_at ?? e.committer?.date ?? e.author?.date ?? "";
     if (!best || ms > best.ms || (ms === best.ms && PRIORITY[kind] > PRIORITY[best.kind])) {
-      best = { kind, ms, ts };
+      best = { kind, ms, ts, by: eventActor(e) };
     }
   }
-  return best ? { kind: best.kind, at: best.ts } : null;
+  if (!best) return null;
+  // Only surface `by` when known, so callers (and existing exact-match tests) see a
+  // clean { kind, at } when GitHub attributes no actor.
+  return best.by ? { kind: best.kind, at: best.ts, by: best.by } : { kind: best.kind, at: best.ts };
 }
 
 function lastPageUrl(link: string | null): string | null {

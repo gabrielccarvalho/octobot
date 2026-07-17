@@ -84,6 +84,28 @@ export async function fetchRequestedReviewers(
   }
 }
 
+// The PR author's login, or null if it can't be determined. Used to decide whether a
+// notification is about the viewer's own PR (possessive framing) or someone else's.
+export async function fetchPrAuthor(
+  token: string,
+  repoFullName: string,
+  prNumber: number,
+  fetchImpl: FetchLike = defaultFetch
+): Promise<string | null> {
+  const url = `https://api.github.com/repos/${repoFullName}/pulls/${prNumber}`;
+  try {
+    const res = await fetchImpl(url, {
+      headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { user?: { login?: string } };
+    return body.user?.login ?? null;
+  } catch (err) {
+    console.warn(`fetchPrAuthor: fetch failed for ${repoFullName}#${prNumber}`, err);
+    return null;
+  }
+}
+
 export async function searchMyPrsAwaitingReview(
   token: string,
   fetchImpl: FetchLike = defaultFetch

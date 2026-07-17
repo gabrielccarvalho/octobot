@@ -13,6 +13,7 @@ import { fetchChecksVerdict } from "./github/checks";
 import {
   searchPullRequests,
   searchMyPrsAwaitingReview,
+  fetchPrAuthor,
   QUERY_AWAITING_MY_REVIEW,
 } from "./github/search";
 import { registerHttpRoutes } from "./http/routes";
@@ -121,6 +122,8 @@ async function main() {
       fetchPrEvent(token, repoFullName, prNumber, at),
     fetchChecksVerdict: (token, repoFullName, prNumber) =>
       fetchChecksVerdict(token, repoFullName, prNumber),
+    fetchPrAuthor: (token, repoFullName, prNumber) =>
+      fetchPrAuthor(token, repoFullName, prNumber),
   });
 
   const scheduler = startDigestScheduler(digestDeps);

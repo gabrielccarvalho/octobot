@@ -70,6 +70,20 @@ describe("selectPrEvent", () => {
     expect(selectPrEvent([ev("line-commented", AT)], AT)?.kind).toBe("commented");
     expect(selectPrEvent([ev("unlabeled", AT)], AT)?.kind).toBe("labeled");
   });
+
+  it("captures the reviewer login (from `user`) as `by`", () => {
+    const raw = [{ event: "reviewed", state: "approved", submitted_at: AT, user: { login: "octocat" } }];
+    expect(selectPrEvent(raw, AT)).toEqual({ kind: "approved", at: AT, by: "octocat" });
+  });
+
+  it("captures the actor login (from `actor`) as `by` for non-review events", () => {
+    expect(selectPrEvent([ev("merged", AT, { actor: { login: "khalil376" } })], AT)?.by).toBe("khalil376");
+  });
+
+  it("omits `by` when GitHub attributes no actor (e.g. a commit)", () => {
+    const res = selectPrEvent([{ event: "committed", committer: { date: AT } }], AT);
+    expect(res).toEqual({ kind: "committed", at: AT }); // no `by` key at all
+  });
 });
 
 function fakeFetch(pages: { status: number; body: unknown; link?: string | null }[]): FetchLike {

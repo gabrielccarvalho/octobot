@@ -20,6 +20,7 @@ let sender: DmSender;
 let nextResult: FetchResult;
 let nextEvent: PrEvent | null;
 let nextChecks: ChecksVerdict | null;
+let nextAuthor: string | null;
 
 const prItem = {
   threadId: "t1",
@@ -43,6 +44,7 @@ function deps(): PollerDeps {
     fetchNotifications: async () => nextResult,
     fetchPrEvent: async () => nextEvent,
     fetchChecksVerdict: async () => nextChecks,
+    fetchPrAuthor: async () => nextAuthor,
   };
 }
 
@@ -54,6 +56,7 @@ beforeEach(() => {
   sender = { sendDm: async (discordId, message) => { sent.push({ discordId, message }); } };
   nextEvent = null;
   nextChecks = null;
+  nextAuthor = "octocat"; // by default the PR is the viewer's own; overridden per test
 });
 
 it("DMs a new PR notification and marks it", async () => {
@@ -112,6 +115,7 @@ it("skips a user that has no baseline (null lastModified)", async () => {
     fetchNotifications,
     fetchPrEvent: async () => null,
     fetchChecksVerdict: async () => null,
+    fetchPrAuthor: async () => null,
   };
   await pollUser(localDeps, fresh.getUser("d2")!);
   expect(fetchNotifications).not.toHaveBeenCalled();
@@ -123,6 +127,84 @@ it("renders the classified event in the DM", async () => {
   nextEvent = { kind: "approved", at: prItem.updatedAt };
   await pollUser(deps(), user());
   expect(sent[0].message.title).toContain("Your PR was approved");
+});
+
+it("suppresses an event the viewer performed themselves, but marks it seen", async () => {
+  // The user (login "octocat") approved a PR they were reviewing; their own approval
+  // is the triggering event. They should not be DMed "Your PR was approved".
+  nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+  nextEvent = { kind: "approved", at: prItem.updatedAt, by: "octocat" };
+  await pollUser(deps(), user());
+  expect(sent).toHaveLength(0);
+  expect(db.wasNotified("d1", "t1", prItem.updatedAt)).toBe(true); // won't be reconsidered next tick
+});
+
+it("compares logins case-insensitively when suppressing self-activity", async () => {
+  nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+  nextEvent = { kind: "approved", at: prItem.updatedAt, by: "OctoCat" };
+  await pollUser(deps(), user());
+  expect(sent).toHaveLength(0);
+});
+
+it("still delivers when someone else performed the event", async () => {
+  nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+  nextEvent = { kind: "approved", at: prItem.updatedAt, by: "khalil376" };
+  await pollUser(deps(), user()); // nextAuthor defaults to the viewer → their own PR
+  expect(sent).toHaveLength(1);
+  expect(sent[0].message.title).toContain("Your PR was approved");
+});
+
+describe("author-aware framing", () => {
+  it("uses non-possessive 'PR #N' framing when the viewer is not the author", async () => {
+    nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+    nextEvent = { kind: "approved", at: prItem.updatedAt, by: "khalil376" };
+    nextAuthor = "khalil376"; // the PR belongs to khalil, not the viewer
+    await pollUser(deps(), user());
+    expect(sent[0].message.title).toBe("✅ PR #1 was approved");
+  });
+
+  it("frames merge and commit events for a non-author with the PR number", async () => {
+    nextAuthor = "khalil376";
+    nextEvent = { kind: "merged", at: prItem.updatedAt, by: "khalil376" };
+    nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+    await pollUser(deps(), user());
+    expect(sent[0].message.title).toBe("🎉 PR #1 was merged");
+
+    nextEvent = { kind: "committed", at: prItem.updatedAt }; // commits carry no attributable actor
+    nextResult = {
+      status: 200,
+      items: [{ ...prItem, threadId: "t2", subjectNumber: 2 }],
+      lastModified: "Mon",
+      pollInterval: 60,
+      ssoPartialOrgIds: [],
+    };
+    await pollUser(deps(), user());
+    expect(sent[1].message.title).toBe("📌 New commits on PR #2");
+  });
+
+  it("keeps possessive framing for the viewer's own PR", async () => {
+    nextResult = { status: 200, items: [prItem], lastModified: "Mon", pollInterval: 60, ssoPartialOrgIds: [] };
+    nextEvent = { kind: "merged", at: prItem.updatedAt, by: "khalil376" };
+    nextAuthor = "octocat"; // the viewer authored it
+    await pollUser(deps(), user());
+    expect(sent[0].message.title).toBe("🎉 Your PR was merged");
+  });
+
+  it("trusts reason 'author' without an author round-trip", async () => {
+    nextResult = {
+      status: 200,
+      items: [{ ...prItem, reason: "author" }],
+      lastModified: "Mon",
+      pollInterval: 60,
+      ssoPartialOrgIds: [],
+    };
+    nextEvent = { kind: "approved", at: prItem.updatedAt, by: "khalil376" };
+    const d = deps();
+    d.fetchPrAuthor = vi.fn(async () => "someone-else"); // must not be consulted
+    await pollUser(d, user());
+    expect(d.fetchPrAuthor).not.toHaveBeenCalled();
+    expect(sent[0].message.title).toBe("✅ Your PR was approved");
+  });
 });
 
 it("falls back to a CI verdict when the timeline yields no event", async () => {
