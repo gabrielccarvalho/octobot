@@ -57,7 +57,7 @@ export const DIGEST_TOGGLE_ID = "digest:toggle";
 export const DIGEST_PREVIEW_ID = "digest:preview";
 
 export const CONNECT_TOKEN_CREATE_URL =
-  "https://github.com/settings/tokens/new?scopes=repo&description=discord-pr-bot";
+  "https://github.com/settings/tokens/new?scopes=repo&description=OctoBot&default_expires_at=none";
 export const CONNECT_TOKEN_PASTE_ID = "connect-token:paste";
 export const CONNECT_TOKEN_MODAL_ID = "connect-token:modal";
 export const CONNECT_TOKEN_INPUT_ID = "connect-token:input";

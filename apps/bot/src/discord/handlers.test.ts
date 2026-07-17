@@ -248,7 +248,7 @@ describe("handleTokenSubmit", () => {
 
   it("exposes the exact pre-filled token URL", () => {
     expect(CONNECT_TOKEN_CREATE_URL).toBe(
-      "https://github.com/settings/tokens/new?scopes=repo&description=discord-pr-bot"
+      "https://github.com/settings/tokens/new?scopes=repo&description=OctoBot&default_expires_at=none"
     );
   });
 
