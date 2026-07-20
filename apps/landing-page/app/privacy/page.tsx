@@ -4,7 +4,6 @@ import { LegalPage } from "@/components/legal/legal-page"
 import {
   COMPANY_NAME,
   COMPANY_LEGAL_NAME,
-  COMPANY_CNPJ,
   CONTACT_EMAIL,
 } from "@/lib/content"
 
@@ -18,7 +17,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      intro={`This policy explains what OctoBot collects, why, and how to remove it. ${COMPANY_NAME}, operated by ${COMPANY_LEGAL_NAME} (CNPJ ${COMPANY_CNPJ}), is the controller of your personal data under Brazil's General Data Protection Law (LGPD, Lei nº 13.709/2018). The short version: we store as little as the service needs, encrypt your access token, and delete everything when you run /unlink.`}
+      intro={`This policy explains what OctoBot collects, why, and how to remove it. ${COMPANY_NAME}, operated by ${COMPANY_LEGAL_NAME}, is the controller of your personal data under Brazil's General Data Protection Law (LGPD, Lei nº 13.709/2018). The short version: we store as little as the service needs, encrypt your access token, and delete everything when you run /unlink.`}
     >
       <h2>1. What we collect</h2>
       <p>

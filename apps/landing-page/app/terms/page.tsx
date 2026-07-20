@@ -4,7 +4,6 @@ import { LegalPage } from "@/components/legal/legal-page"
 import {
   COMPANY_NAME,
   COMPANY_LEGAL_NAME,
-  COMPANY_CNPJ,
   CONTACT_EMAIL,
   GOVERNING_LAW,
   JURISDICTION_FORUM,
@@ -19,7 +18,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      intro={`These terms are a binding agreement between you and ${COMPANY_NAME}, operated by ${COMPANY_LEGAL_NAME} (CNPJ ${COMPANY_CNPJ}) ("we", "us"). By adding OctoBot to a Discord server or connecting your GitHub account, you agree to them.`}
+      intro={`These terms are a binding agreement between you and ${COMPANY_NAME}, operated by ${COMPANY_LEGAL_NAME} ("we", "us"). By adding OctoBot to a Discord server or connecting your GitHub account, you agree to them.`}
     >
       <h2>1. The service</h2>
       <p>

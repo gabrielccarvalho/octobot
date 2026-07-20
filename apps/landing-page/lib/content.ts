@@ -36,7 +36,6 @@ export const OPEN_SOURCE = {
 export const COMPANY_NAME = "OctoBot"
 /** Registered entity behind OctoBot. */
 export const COMPANY_LEGAL_NAME = "GABRIEL CAMPOS DOS SANTOS P DE CARVALHO LTDA"
-export const COMPANY_CNPJ = "58.378.419/0001-61"
 /** Governing law and venue (foro) for the Terms. */
 export const GOVERNING_LAW = "the Federative Republic of Brazil"
 export const JURISDICTION_FORUM = "the Comarca de São Paulo/SP"
