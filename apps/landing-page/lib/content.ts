@@ -190,7 +190,6 @@ export type Step = {
   n: string
   title: string
   body: string
-  scene: "connect" | "baseline" | "notify" | "digest"
 }
 
 export const STEPS: Step[] = [
@@ -198,25 +197,21 @@ export const STEPS: Step[] = [
     n: "01",
     title: "Connect",
     body: "Run /link and OctoBot hands you a personal GitHub authorization link, guarded by a single-use, time-limited token. Authorize, and your account is linked.",
-    scene: "connect",
   },
   {
     n: "02",
     title: "Baseline",
     body: "On first connect it marks today's notifications as already-seen and DMs you one welcome summary of what needs attention — so you're never blasted with history.",
-    scene: "baseline",
   },
   {
     n: "03",
     title: "Notify",
     body: "About once a minute OctoBot checks GitHub for new activity, filters it against your subscription, enriches PR reviews with their verdict, and DMs you — deduplicated per thread.",
-    scene: "notify",
   },
   {
     n: "04",
     title: "Digest",
     body: "At 6am it can send a once-a-day roundup of the pull requests awaiting your review. Optional, and only sent when the list isn't empty.",
-    scene: "digest",
   },
 ]
 
