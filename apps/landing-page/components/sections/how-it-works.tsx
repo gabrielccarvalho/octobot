@@ -42,7 +42,7 @@ export function HowItWorks() {
         className="mt-12 grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12"
       >
         {/* Copy rail */}
-        <div className="flex flex-col gap-7">
+        <div className="flex min-w-0 flex-col gap-7">
           {STEPS.map((s, i) => {
             const active = i === step
             return (
@@ -100,7 +100,7 @@ export function HowItWorks() {
         </div>
 
         {/* The demo */}
-        <div className="relative w-full max-w-xl justify-self-center lg:justify-self-end">
+        <div className="relative w-full min-w-0 max-w-xl justify-self-center lg:justify-self-end">
           <div
             className="absolute -inset-5 -z-[1] rounded-[2rem] bg-primary/10 blur-2xl"
             aria-hidden
