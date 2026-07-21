@@ -105,7 +105,7 @@ export function DiscordTextEmbed({ embed }: { embed: TextEmbed }) {
                     {group.prs.map((pr) => (
                       <div
                         key={pr.number}
-                        className="truncate text-sm leading-snug text-[#dbdee1]"
+                        className="text-sm leading-snug text-[#dbdee1] sm:truncate"
                       >
                         <span className="cursor-pointer text-[#00a8fc] hover:underline">
                           #{pr.number} {pr.title}
