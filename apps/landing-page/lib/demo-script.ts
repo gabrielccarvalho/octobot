@@ -1,7 +1,9 @@
 /**
  * The script the "How it works" demo performs.
  *
- * Every string here is real bot output — do not invent copy:
+ * Every string here is real bot output — do not invent copy — except the
+ * OAuth `url` on the connect scene's `ephemeral` beat, which is representative
+ * of authorizeUrl(state)'s output; the real value is generated per request:
  *   /link reply     → apps/bot/src/discord/handlers.ts (handleLink)
  *   welcome summary → apps/bot/src/status.ts (attentionMessage)
  *   daily digest    → apps/bot/src/status.ts (digestMessage)
@@ -9,7 +11,7 @@
  *   tone + mascot   → apps/bot/src/messages/tone.ts
  */
 
-import { HERO_EMBEDS } from "./content"
+import { HERO_EMBEDS, STEPS } from "./content"
 import type { HeroEmbed } from "./content"
 
 /** One PR line inside an embed section — mirrors status.ts renderSection(). */
@@ -149,6 +151,8 @@ export const SCENES: Scene[] = [
         at: 1800,
         kind: "ephemeral",
         intro: "🔗 Connect your GitHub account to receive PR notifications:",
+        // Representative of authorizeUrl(state) in apps/bot/src/discord/handlers.ts —
+        // the real URL (including `state`) is generated per request.
         url: "https://github.com/login/oauth/authorize?client_id=Ov23liOctoBot&state=b7f0c2a9",
         note: "This link is personal — don't share it. It expires shortly.",
       },
@@ -166,7 +170,7 @@ export const SCENES: Scene[] = [
   {
     duration: 10000,
     beats: [
-      { at: 0, kind: "system", text: "poll · 3 new notifications" },
+      { at: 0, kind: "system", text: "poll · 4 new notifications" },
       { at: 900, kind: "embed", embed: HERO_EMBEDS[0] },
       { at: 2600, kind: "filtered", reason: "💬 New comment — muted by /listen-to" },
       { at: 4200, kind: "embed", embed: HERO_EMBEDS[2] },
@@ -182,3 +186,5 @@ export const SCENES: Scene[] = [
     ],
   },
 ]
+
+if (SCENES.length !== STEPS.length) throw new Error("SCENES must have one entry per STEP")

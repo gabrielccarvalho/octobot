@@ -153,7 +153,7 @@ export function DiscordDemo({ step, playing }: { step: number; playing: boolean 
 
   return (
     <DiscordFrame
-      bodyClassName="h-[24rem] justify-end sm:h-[26rem]"
+      bodyClassName="h-[28rem] justify-end sm:h-[26rem]"
       composer={
         <Composer typed={typed} showPopup={Boolean(typingBeat) && typed.startsWith("/")} />
       }

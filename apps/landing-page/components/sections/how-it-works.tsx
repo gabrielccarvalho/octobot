@@ -100,7 +100,10 @@ export function HowItWorks() {
         </div>
 
         {/* The demo */}
-        <div className="relative w-full min-w-0 max-w-xl justify-self-center lg:justify-self-end">
+        <div
+          className="relative w-full min-w-0 max-w-xl justify-self-center lg:justify-self-end"
+          aria-hidden="true"
+        >
           <div
             className="absolute -inset-5 -z-[1] rounded-[2rem] bg-primary/10 blur-2xl"
             aria-hidden
