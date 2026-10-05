@@ -35,10 +35,40 @@ describe("notificationMessage", () => {
     expect(msg.color).toBe(0x8957e5);
   });
 
-  it("credits who performed the event when known", () => {
-    const msg = notificationMessage(item, { source: "event", kind: "commented", by: "khalil376" });
-    const unix = Math.floor(Date.parse("2026-06-17T10:00:00Z") / 1000);
-    expect(msg.body.split("\n")[1]).toBe(`acme/repo · by @khalil376 · <t:${unix}:R>`);
+  it("credits who performed the event, with their avatar, when known", () => {
+    const msg = notificationMessage(item, {
+      source: "event",
+      kind: "commented",
+      by: "khalil376",
+      avatarUrl: "https://avatars.githubusercontent.com/u/1",
+    });
+    expect(msg.author).toEqual({ name: "@khalil376", iconUrl: "https://avatars.githubusercontent.com/u/1" });
+  });
+
+  it("omits the author when the actor is unknown", () => {
+    expect(notificationMessage(item, { source: "event", kind: "merged" }).author).toBeUndefined();
+  });
+
+  it("leads the body with the comment as a large one-line quote", () => {
+    const msg = notificationMessage(item, {
+      source: "event",
+      kind: "commented",
+      body: "Looks good,\n\nbut rename this <!-- bot marker --> please",
+    });
+    expect(msg.body.split("\n")[0]).toBe("### “Looks good, but rename this please”");
+    expect(msg.body.split("\n")[1]).toBe("[#42 Fix the widget](https://github.com/acme/repo/pull/42)");
+  });
+
+  it("clips a long comment", () => {
+    const msg = notificationMessage(item, { source: "event", kind: "commented", body: "a".repeat(500) });
+    const line = msg.body.split("\n")[0];
+    expect(line.endsWith("…”")).toBe(true);
+    expect(line.length).toBeLessThan(220);
+  });
+
+  it("skips the quote when the comment is only an HTML comment", () => {
+    const msg = notificationMessage(item, { source: "event", kind: "commented", body: "<!-- x -->" });
+    expect(msg.body.startsWith("[#42")).toBe(true);
   });
 
   it("renders a numberless subject without a leading #", () => {

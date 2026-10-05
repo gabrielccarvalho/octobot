@@ -84,6 +84,27 @@ describe("selectPrEvent", () => {
     const res = selectPrEvent([{ event: "committed", committer: { date: AT } }], AT);
     expect(res).toEqual({ kind: "committed", at: AT }); // no `by` key at all
   });
+
+  it("captures the commenter's avatar and comment text", () => {
+    const raw = [
+      ev("commented", AT, {
+        actor: { login: "khalil376", avatar_url: "https://avatars.githubusercontent.com/u/1" },
+        body: "  nit: rename this  ",
+      }),
+    ];
+    expect(selectPrEvent(raw, AT)).toEqual({
+      kind: "commented",
+      at: AT,
+      by: "khalil376",
+      avatarUrl: "https://avatars.githubusercontent.com/u/1",
+      body: "nit: rename this",
+    });
+  });
+
+  it("omits `body` for an empty review body", () => {
+    const raw = [{ event: "reviewed", state: "approved", submitted_at: AT, body: "", user: { login: "octocat" } }];
+    expect(selectPrEvent(raw, AT)).toEqual({ kind: "approved", at: AT, by: "octocat" });
+  });
 });
 
 function fakeFetch(pages: { status: number; body: unknown; link?: string | null }[]): FetchLike {

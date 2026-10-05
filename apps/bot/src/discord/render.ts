@@ -6,10 +6,12 @@ import type { OctoMessage } from "../notifier";
 // embed footers don't parse <t:UNIX:R>, so relative time lives in the description.
 export function renderEmbed(message: OctoMessage, mascotBaseUrl: string): EmbedBuilder {
   const tone = TONE[message.tone];
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setColor(message.color ?? tone.color)
     .setTitle(message.title)
     .setDescription(message.body)
     .setThumbnail(`${mascotBaseUrl}/${tone.image}`)
     .setFooter({ text: "OctoBot" });
+  if (message.author) embed.setAuthor({ name: message.author.name, iconURL: message.author.iconUrl });
+  return embed;
 }

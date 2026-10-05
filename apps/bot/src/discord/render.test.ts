@@ -14,6 +14,16 @@ describe("renderEmbed", () => {
     expect(e.footer?.text).toBe("OctoBot");
   });
 
+  it("sets the author with avatar only when the message has one", () => {
+    expect(renderEmbed(base, "https://x.dev").toJSON().author).toBeUndefined();
+    const e = renderEmbed(
+      { ...base, author: { name: "@octocat", iconUrl: "https://avatars.githubusercontent.com/u/1" } },
+      "https://x.dev"
+    ).toJSON();
+    expect(e.author?.name).toBe("@octocat");
+    expect(e.author?.icon_url).toBe("https://avatars.githubusercontent.com/u/1");
+  });
+
   it("falls back to the tone's default colour", () => {
     expect(renderEmbed(base, "https://x.dev").toJSON().color).toBe(TONE.celebrate.color);
   });

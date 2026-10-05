@@ -1,5 +1,5 @@
 import type { NotificationItem } from "./github/notifications";
-import type { PrEventKind } from "./github/timeline";
+import type { PrEvent, PrEventKind } from "./github/timeline";
 import type { ChecksVerdict } from "./github/checks";
 import { reasonMeta } from "./github/taxonomy";
 import type { Tone } from "./messages/tone";
@@ -10,7 +10,7 @@ export interface DmSender {
 
 // A resolved explanation of what triggered a PR notification.
 export type PrOutcome =
-  | { source: "event"; kind: PrEventKind; by?: string }
+  | ({ source: "event" } & Omit<PrEvent, "at">)
   | { source: "checks"; verdict: ChecksVerdict };
 
 // What a message says and how it should feel. Deliberately knows nothing about
@@ -20,6 +20,7 @@ export interface OctoMessage {
   title: string;
   body: string;
   color?: number; // overrides the tone's default
+  author?: { name: string; iconUrl?: string };
 }
 
 interface Meta {
@@ -181,6 +182,17 @@ function resolveMeta(item: NotificationItem, outcome: PrOutcome | null): Meta {
   return { emoji: meta.emoji, label: meta.label, tone: toneForReason(item.reason) };
 }
 
+const QUOTE_MAX = 200;
+
+// Discord headings are single-line, so the comment is flattened to one line to render
+// large. HTML comments are stripped because bots and PR templates are full of them.
+function quote(text: string): string | null {
+  const flat = text.replace(/<!--[\s\S]*?-->/g, "").replace(/\s+/g, " ").trim();
+  if (!flat) return null;
+  const clipped = flat.length > QUOTE_MAX ? `${flat.slice(0, QUOTE_MAX - 1).trimEnd()}…` : flat;
+  return `### “${clipped}”`;
+}
+
 export function notificationMessage(
   item: NotificationItem,
   outcome?: PrOutcome | null,
@@ -201,11 +213,13 @@ export function notificationMessage(
     item.subjectNumber != null
       ? `[#${item.subjectNumber} ${item.subjectTitle}](${item.subjectUrl})`
       : `[${item.subjectTitle}](${item.subjectUrl})`;
-  const by = outcome?.source === "event" && outcome.by ? ` · by @${outcome.by}` : "";
+  const event = outcome?.source === "event" ? outcome : null;
+  const said = event?.body ? quote(event.body) : null;
   return {
     tone: meta.tone,
     color: meta.color,
     title: `${meta.emoji} ${label}`,
-    body: [link, `${item.repoFullName}${by} · <t:${unix}:R>`].join("\n"),
+    body: [said, link, `${item.repoFullName} · <t:${unix}:R>`].filter(Boolean).join("\n"),
+    ...(event?.by && { author: { name: `@${event.by}`, iconUrl: event.avatarUrl } }),
   };
 }

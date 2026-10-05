@@ -20,6 +20,8 @@ export interface PrEvent {
   kind: PrEventKind;
   at: string;
   by?: string; // login of who performed the event, when GitHub attributes one
+  avatarUrl?: string;
+  body?: string; // the comment or review text, when the event carries one
 }
 
 interface RawTimelineEvent {
@@ -29,8 +31,9 @@ interface RawTimelineEvent {
   submitted_at?: string;
   committer?: { date?: string };
   author?: { date?: string };
-  actor?: { login?: string };
-  user?: { login?: string }; // review events carry the reviewer here, not in `actor`
+  body?: string | null;
+  actor?: { login?: string; avatar_url?: string };
+  user?: { login?: string; avatar_url?: string }; // review events carry the reviewer here, not in `actor`
 }
 
 // Absorb clock drift between GitHub's notification timestamp and the event timestamp.
@@ -61,8 +64,9 @@ function eventTime(raw: RawTimelineEvent): number | null {
 
 // Who performed the event. Reviews put the reviewer in `user`; most other events
 // use `actor`. Commits carry only git identities (no login), so they resolve to null.
-function eventActor(raw: RawTimelineEvent): string | null {
-  return raw.actor?.login ?? raw.user?.login ?? null;
+function eventActor(raw: RawTimelineEvent): { login: string; avatarUrl?: string } | null {
+  const who = raw.actor?.login ? raw.actor : raw.user?.login ? raw.user : null;
+  return who ? { login: who.login!, avatarUrl: who.avatar_url } : null;
 }
 
 function toKind(raw: RawTimelineEvent): PrEventKind | null {
@@ -113,7 +117,7 @@ function toKind(raw: RawTimelineEvent): PrEventKind | null {
 // selectable event whose timestamp is the latest at or before `at` (+ skew).
 export function selectPrEvent(raw: RawTimelineEvent[], at: string): PrEvent | null {
   const cutoff = Date.parse(at) + SKEW_MS;
-  let best: { kind: PrEventKind; ms: number; ts: string; by: string | null } | null = null;
+  let best: { kind: PrEventKind; ms: number; ts: string; raw: RawTimelineEvent } | null = null;
   for (const e of raw) {
     const kind = toKind(e);
     if (!kind) continue;
@@ -121,13 +125,19 @@ export function selectPrEvent(raw: RawTimelineEvent[], at: string): PrEvent | nu
     if (ms == null || ms > cutoff) continue;
     const ts = e.submitted_at ?? e.created_at ?? e.committer?.date ?? e.author?.date ?? "";
     if (!best || ms > best.ms || (ms === best.ms && PRIORITY[kind] > PRIORITY[best.kind])) {
-      best = { kind, ms, ts, by: eventActor(e) };
+      best = { kind, ms, ts, raw: e };
     }
   }
   if (!best) return null;
-  // Only surface `by` when known, so callers (and existing exact-match tests) see a
-  // clean { kind, at } when GitHub attributes no actor.
-  return best.by ? { kind: best.kind, at: best.ts, by: best.by } : { kind: best.kind, at: best.ts };
+  // Only surface optional fields when known, so callers (and existing exact-match
+  // tests) see a clean { kind, at } when GitHub attributes no actor.
+  const event: PrEvent = { kind: best.kind, at: best.ts };
+  const actor = eventActor(best.raw);
+  if (actor) event.by = actor.login;
+  if (actor?.avatarUrl) event.avatarUrl = actor.avatarUrl;
+  const body = best.raw.body?.trim();
+  if (body) event.body = body;
+  return event;
 }
 
 function lastPageUrl(link: string | null): string | null {
