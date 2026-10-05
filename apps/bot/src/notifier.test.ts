@@ -35,6 +35,12 @@ describe("notificationMessage", () => {
     expect(msg.color).toBe(0x8957e5);
   });
 
+  it("credits who performed the event when known", () => {
+    const msg = notificationMessage(item, { source: "event", kind: "commented", by: "khalil376" });
+    const unix = Math.floor(Date.parse("2026-06-17T10:00:00Z") / 1000);
+    expect(msg.body.split("\n")[1]).toBe(`acme/repo · by @khalil376 · <t:${unix}:R>`);
+  });
+
   it("renders a numberless subject without a leading #", () => {
     const release = {
       ...item,

@@ -152,7 +152,7 @@ export async function pollUser(deps: PollerDeps, user: User): Promise<PollOutcom
           // back as "Your PR was approved"; suppress instead — you don't need a DM about
           // something you just did, and it isn't your PR.
           if (isSelfActivity(event, user.githubLogin)) selfActivity = true;
-          else outcome = { source: "event", kind: event.kind };
+          else outcome = { source: "event", kind: event.kind, by: event.by };
         } else if (item.reason === "ci_activity") {
           // selectPrEvent also returns null for unmapped-but-notifying events (rename,
           // dismissed review, cross-reference, base-branch force-push); only probe CI

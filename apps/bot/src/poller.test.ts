@@ -152,6 +152,7 @@ it("still delivers when someone else performed the event", async () => {
   await pollUser(deps(), user()); // nextAuthor defaults to the viewer → their own PR
   expect(sent).toHaveLength(1);
   expect(sent[0].message.title).toContain("Your PR was approved");
+  expect(sent[0].message.body).toContain("by @khalil376");
 });
 
 describe("author-aware framing", () => {

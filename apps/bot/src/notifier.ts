@@ -10,7 +10,7 @@ export interface DmSender {
 
 // A resolved explanation of what triggered a PR notification.
 export type PrOutcome =
-  | { source: "event"; kind: PrEventKind }
+  | { source: "event"; kind: PrEventKind; by?: string }
   | { source: "checks"; verdict: ChecksVerdict };
 
 // What a message says and how it should feel. Deliberately knows nothing about
@@ -201,10 +201,11 @@ export function notificationMessage(
     item.subjectNumber != null
       ? `[#${item.subjectNumber} ${item.subjectTitle}](${item.subjectUrl})`
       : `[${item.subjectTitle}](${item.subjectUrl})`;
+  const by = outcome?.source === "event" && outcome.by ? ` · by @${outcome.by}` : "";
   return {
     tone: meta.tone,
     color: meta.color,
     title: `${meta.emoji} ${label}`,
-    body: [link, `${item.repoFullName} · <t:${unix}:R>`].join("\n"),
+    body: [link, `${item.repoFullName}${by} · <t:${unix}:R>`].join("\n"),
   };
 }
